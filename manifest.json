@@ -1,0 +1,16 @@
+{
+  "short_name": "Bolo Rig Pro",
+  "name": "Bolo Rig Pro",
+  "description": "The ultimate Bolognese rig shot calculator for competitive anglers",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0d2144",
+  "background_color": "#060f1e"
+}
