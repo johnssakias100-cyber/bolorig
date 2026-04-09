@@ -1,0 +1,40 @@
+{
+  "packageId": "io.github.johnssakias100_cyber.bolorig",
+  "host": "johnssakias100-cyber.github.io",
+  "name": "Bolo Rig Pro",
+  "launcherName": "BoloRig",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#0D2144",
+  "navigationColor": "#0D2144",
+  "navigationColorDark": "#0D2144",
+  "navigationDividerColor": "#0D2144",
+  "navigationDividerColorDark": "#0D2144",
+  "backgroundColor": "#060F1E",
+  "enableNotifications": false,
+  "startUrl": "/bolorig/",
+  "iconUrl": "https://raw.githubusercontent.com/johnssakias100-cyber/bolorig/gh-pages/icon-512.png",
+  "maskableIconUrl": "https://raw.githubusercontent.com/johnssakias100-cyber/bolorig/gh-pages/icon-512.png",
+  "monochromeIconUrl": "",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0",
+  "appVersionCode": 3,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://johnssakias100-cyber.github.io/bolorig/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullyImmersiveDisplay": false,
+  "minSdkVersion": 21,
+  "targetSdkVersion": 34
+}
