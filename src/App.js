@@ -223,18 +223,20 @@ function RigDiagram({positions,totalCm,t,lang}){
               }
 
               if(isBulk){
-                // Find start index of this bulk group
+                // Find start/end of this bulk group
                 let groupStart=i;
                 while(groupStart>0&&positions[groupStart-1].rowType==="bulk")groupStart--;
-                // Only render on first of group - draw all dots stacked
                 if(i!==groupStart)return null;
                 let groupEnd=i;
                 while(groupEnd<positions.length-1&&positions[groupEnd+1].rowType==="bulk")groupEnd++;
                 const count=groupEnd-groupStart+1;
-                // Stack dots vertically, each touching the next (bs px each)
+                // All bulk items are at same distFromHook (0), so center the stack at topPx
+                // Total height of stack
+                const stackH=count*bs-(count-1)*2; // overlap by 2px
                 return(
-                  <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2,
-                    display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+                  <div key={i} style={{position:"absolute",top:topPx,left:"50%",
+                    transform:`translate(-50%,-${stackH/2}px)`,
+                    zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
                     {Array.from({length:count}).map((_,k)=>(
                       <div key={k} style={{width:bs,height:bs,borderRadius:"50%",flexShrink:0,
                         background:`radial-gradient(circle at 35% 35%,${BULK_COL}bb,#0d1f35)`,
