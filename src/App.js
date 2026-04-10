@@ -223,19 +223,17 @@ function RigDiagram({positions,totalCm,t,lang}){
               }
 
               if(isBulk){
-                // Find start/end of this bulk group
                 let groupStart=i;
                 while(groupStart>0&&positions[groupStart-1].rowType==="bulk")groupStart--;
                 if(i!==groupStart)return null;
                 let groupEnd=i;
                 while(groupEnd<positions.length-1&&positions[groupEnd+1].rowType==="bulk")groupEnd++;
                 const count=groupEnd-groupStart+1;
-                // All bulk items are at same distFromHook (0), so center the stack at topPx
-                // Total height of stack
-                const stackH=count*bs-(count-1)*2; // overlap by 2px
+                const stackH=count*(bs-2); // total height with slight overlap
+                // bottom of stack = topPx (closest to hook = lowest distFromHook)
                 return(
-                  <div key={i} style={{position:"absolute",top:topPx,left:"50%",
-                    transform:`translate(-50%,-${stackH/2}px)`,
+                  <div key={i} style={{position:"absolute",top:topPx-stackH,left:"50%",
+                    transform:"translateX(-50%)",
                     zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
                     {Array.from({length:count}).map((_,k)=>(
                       <div key={k} style={{width:bs,height:bs,borderRadius:"50%",flexShrink:0,
@@ -288,9 +286,13 @@ function RigDiagram({positions,totalCm,t,lang}){
             if(isBulk&&i>0&&positions[i-1].rowType==="bulk")return null;
             let bulkCount=0;
             if(isBulk){for(let j=i;j<positions.length&&positions[j].rowType==="bulk";j++)bulkCount++;}
+            const bs2=Math.round(9+Math.min(7,pos.shot.grams*7));
+            const stackH2=isBulk?bulkCount*(bs2-2):0;
+            // For bulk, label at center of stack (topPx - stackH/2)
+            const labelTop=isBulk?(topPx-stackH2/2):topPx;
 
             return(
-              <div key={`lbl${i}`} style={{position:"absolute",top:topPx,left:8,transform:"translateY(-50%)",lineHeight:1.3}}>
+              <div key={`lbl${i}`} style={{position:"absolute",top:labelTop,left:8,transform:"translateY(-50%)",lineHeight:1.3}}>
                 <span style={{fontSize:10,fontWeight:800,color:col,whiteSpace:"nowrap"}}>
                   {isTorp?"🔵 ":""}{isBulk?`${bulkCount}× ${pos.shot.code}`:pos.shot.code}
                   {isBulk&&<span style={{fontSize:8,marginLeft:3,color:BULK_COL,background:"#e5393520",borderRadius:2,padding:"1px 3px"}}>BULK</span>}
