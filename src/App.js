@@ -116,11 +116,15 @@ function buildPositions(items,spacingRows,torpedoes){
       if(si>=items.length&&!isLast)break;
       const idx=Math.min(si,items.length-1);
       if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
-      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:0,rowType:row.type||"shot"});si++;
+      const isFirstOfBulk=isBulk&&x===0;
+      const isLastOfBulk=isBulk&&x===rc-1;
+      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:0,rowType:row.type||"shot",
+        bulkBefore:isFirstOfBulk?bulkBefore:0,
+        bulkAfter:isLastOfBulk?bulkGap:0});si++;
     }
     // After bulk group, move cursor forward by bulkGap
     if(isBulk&&bulkGap>0&&pos.length>0)cursor+=bulkGap;
-    if(isLast&&si<items.length){while(si<items.length){cursor+=isBulk?0:cm;pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;}}
+    if(isLast&&si<items.length){while(si<items.length){cursor+=isBulk?0:cm;pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot",bulkBefore:0,bulkAfter:0});si++;}}
   }
   return pos;
 }
@@ -324,19 +328,38 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Bulk gap label: after bulk group */}
+          {/* Bulk BEFORE label: above the bulk group */}
           {positions.map((pos,i)=>{
-            if(i===0)return null;
+            if(pos.rowType!=="bulk"||!pos.bulkBefore||pos.bulkBefore<=0)return null;
+            // Only show on first bulk item
+            if(i>0&&positions[i-1].rowType==="bulk")return null;
+            // Midpoint between previous shot and this bulk
             const prev=positions[i-1];
-            if(prev.rowType!=="bulk"||pos.rowType==="bulk")return null;
-            const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
-            if(gap<=0)return null;
-            const midCm=(pos.distFromHook+prev.distFromHook)/2;
+            if(!prev)return null;
+            const midCm=pos.distFromHook+pos.bulkBefore/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
-              <div key={`bg${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
+              <div key={`bb${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
                 <span style={{fontSize:9,color:BULK_COL,fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:`1px solid ${BULK_COL}30`}}>
-                  {gap}cm
+                  {pos.bulkBefore}cm
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Bulk AFTER label: below the bulk group */}
+          {positions.map((pos,i)=>{
+            if(pos.rowType!=="bulk"||!pos.bulkAfter||pos.bulkAfter<=0)return null;
+            // Only show on last bulk item
+            if(i<positions.length-1&&positions[i+1].rowType==="bulk")return null;
+            const next=positions[i+1];
+            if(!next)return null;
+            const midCm=pos.distFromHook+pos.bulkAfter/2;
+            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
+            return(
+              <div key={`ba${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:BULK_COL,fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:`1px solid ${BULK_COL}30`}}>
+                  {pos.bulkAfter}cm
                 </span>
               </div>
             );
