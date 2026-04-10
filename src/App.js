@@ -172,10 +172,10 @@ function RigDiagram({positions,totalCm,t,lang}){
         {hasTorp&&<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:12,borderRadius:"50%",background:TORP_COL}}/><span style={{fontSize:10,color:TORP_COL}}>{lang==="el"?"Τορπίλη":"Torpedo"}</span></div>}
       </div>
 
-      <div style={{display:"flex",gap:0}}>
+      <div style={{display:"flex",gap:0,paddingLeft:8}}>
 
         {/* RULER col: left half = gap labels, right half = tick numbers */}
-        <div style={{width:56,flexShrink:0,position:"relative",height:totalH}}>
+        <div style={{width:64,flexShrink:0,position:"relative",height:totalH}}>
 
           {/* Tick numbers — right side */}
           {ticks.map(c=>{
@@ -183,7 +183,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             const isZero=c===0;
             return(
               <div key={c} style={{position:"absolute",top:y,right:0,display:"flex",alignItems:"center",gap:2,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:8,color:isZero?"#ffd740":"#546e7a",fontWeight:700,lineHeight:1,whiteSpace:"nowrap"}}>{c}</span>
+                <span style={{fontSize:8,color:isZero?"#ffd740":"#546e7a",fontWeight:700,lineHeight:1,whiteSpace:"nowrap"}}>{c}cm</span>
                 <div style={{width:isZero?6:4,height:1,background:isZero?"#ffd740":"#37474f"}}/>
               </div>
             );
@@ -200,7 +200,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:0,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{gap}</span>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{gap}cm</span>
               </div>
             );
           })}
@@ -215,7 +215,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`bb${i}`} style={{position:"absolute",top:midPx,left:0,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{pos.bulkBefore}</span>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{pos.bulkBefore}cm</span>
               </div>
             );
           })}
@@ -235,7 +235,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`ba${i}`} style={{position:"absolute",top:midPx,left:0,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{pos.bulkAfter}</span>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{pos.bulkAfter}cm</span>
               </div>
             );
           })}
@@ -287,12 +287,13 @@ function RigDiagram({positions,totalCm,t,lang}){
                 let groupEnd=i;
                 while(groupEnd<positions.length-1&&positions[groupEnd+1].rowType==="bulk")groupEnd++;
                 const count=groupEnd-groupStart+1;
-                // Fixed 5cm visual height on ruler
                 const fixedH=5*PPC;
                 const dotSize=Math.min(bs,Math.round(fixedH/count)+2);
+                // At 0 (hook): grow upward only. Otherwise center.
+                const isAtZero=pos.distFromHook===0;
                 return(
                   <div key={i} style={{position:"absolute",top:topPx,left:"50%",
-                    transform:`translate(-50%,-${fixedH/2}px)`,
+                    transform:isAtZero?`translate(-50%,-${fixedH}px)`:`translate(-50%,-${fixedH/2}px)`,
                     zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",
                     height:fixedH}}>
                     {Array.from({length:count}).map((_,k)=>(
@@ -304,9 +305,12 @@ function RigDiagram({positions,totalCm,t,lang}){
                 );
               }
 
+              // Shot dot — at 0 sit on top of hook line (translate up only)
+              const isAtZero=pos.distFromHook===0;
               return(
-                <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2,
-                  width:bs,height:bs,borderRadius:"50%",
+                <div key={i} style={{position:"absolute",top:topPx,left:"50%",
+                  transform:isAtZero?`translate(-50%,-${bs}px)`:"translate(-50%,-50%)",
+                  zIndex:2,width:bs,height:bs,borderRadius:"50%",
                   background:`radial-gradient(circle at 35% 35%,${SHOT_COL}bb,#0d1f35)`,
                   border:`2px solid ${SHOT_COL}`,boxShadow:`0 0 5px ${SHOT_COL}55`}}/>
               );
@@ -322,12 +326,14 @@ function RigDiagram({positions,totalCm,t,lang}){
         </div>
 
         {/* LABELS col */}
-        <div style={{flex:1,position:"relative",height:totalH,minWidth:0,paddingLeft:8}}>
+        <div style={{flex:1,position:"relative",height:totalH,minWidth:0,paddingLeft:12}}>
 
-          {/* Float label - fixed at very top */}
+          {/* Top label - shows total rig length */}
           <div style={{position:"absolute",top:6,left:8}}>
-            <div style={{fontSize:10,color:"#90caf9",fontWeight:700}}>{t.floatTop}</div>
-            <div style={{fontSize:9,color:"#546e7a"}}>{totalCm}cm</div>
+            <div style={{fontSize:10,color:"#90caf9",fontWeight:700}}>
+              {lang==="el"?"1ο → τελευταίο βαρίδι":"1st → last shot"}
+            </div>
+            <div style={{fontSize:9,color:"#ffd740",fontWeight:800}}>{totalCm}cm</div>
           </div>
 
           {/* Shot labels - bulk grouped, show only first */}
