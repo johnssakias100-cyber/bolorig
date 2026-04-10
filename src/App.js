@@ -193,8 +193,7 @@ function RigDiagram({positions,totalCm,t,lang}){
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
-            if(pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
-            // Skip within bulk group
+            // Skip within bulk group only
             if(pos.rowType==="bulk"&&prev.rowType==="bulk")return null;
             const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
             if(gap<=0)return null;
