@@ -95,36 +95,33 @@ function buildPositions(items,spacingRows,torpedoes){
   for(let ri=0;ri<spacingRows.length;ri++){
     const row=spacingRows[ri],isLast=ri===spacingRows.length-1;
     const cm=parseFloat(row.spacing)||0;
+    // cm = distance from previous element to this one
+    // Advance cursor before placing (except for first element at hook)
+    if(pos.length>0)cursor+=cm;
+
     if(row.type==="torpedo"){
       const tp=row.torpedoMode==="list"?torpedoes&&torpedoes.find(t=>t.id===row.torpedoId):null;
       const grams=row.torpedoMode==="list"?(tp?tp.grams:0):((parseFloat(row.torpedoPct)||60)/100*(parseFloat(row.torpedoTarget)||2));
       const code=row.torpedoMode==="list"?(tp?tp.code:"?"):`Auto ${(parseFloat(row.torpedoPct)||60)}%`;
       pos.push({shot:{grams,code,isTorpedo:true,id:row.id},distFromHook:cursor,spacingCm:cm,rowType:"torpedo"});
-      cursor+=cm;
       continue;
     }
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
-    const bulkBefore=isBulk?(parseFloat(row.spacingBefore)||0):0;
-    const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
-    if(isBulk&&bulkBefore>0)cursor+=bulkBefore;
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
       const isFirstOfBulk=isBulk&&x===0;
       const isLastOfBulk=isBulk&&x===rc-1;
-      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:0,rowType:row.type||"shot",
-        bulkBefore:isFirstOfBulk?bulkBefore:0,
-        bulkAfter:isLastOfBulk?bulkGap:0});
+      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:cm,rowType:row.type||"shot",
+        bulkBefore:0,
+        bulkAfter:isLastOfBulk?cm:0});
       si++;
     }
-    // After placing all items of this row, advance cursor
-    if(!isBulk) cursor+=cm;
-    else cursor+=bulkGap;
     if(isLast&&si<items.length){
       while(si<items.length){
+        cursor+=cm;
         pos.push({shot:items[si],distFromHook:cursor,spacingCm:cm,rowType:"shot",bulkBefore:0,bulkAfter:0});
         si++;
-        cursor+=cm;
       }
     }
   }
@@ -437,12 +434,9 @@ export default function App(){
   const addTorpedo=()=>{if(!newTorpCode||!newTorpGrams)return;const g=parseFloat(newTorpGrams);if(isNaN(g)||g<=0)return;setTorpedoes(p=>[...p,{id:"tc"+Date.now(),code:newTorpCode,grams:g}]);setNewTorpCode("");setNewTorpGrams("");setShowAddTorp(false);};
   const removeTorpedo=id=>setTorpedoes(p=>p.filter(t2=>t2.id!==id));
 
-  // Β FIX: "κοντά στον πλωτήρα" = end of array (high index = far from hook = near float)
-  // "κοντά στη θηλιά" = start of array (index 0 = near hook)
-  const addSpacingRow=(pos="end",rt="shot")=>{
+  const addSpacingRow=(rt="shot")=>{
     const r={id:Date.now(),count:"1",spacing:"10",type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr};
-    if(pos==="end")setSpacingRows(p=>[...p,r]);   // near loop = append (shown at bottom)
-    else setSpacingRows(p=>[r,...p]);             // near float = prepend (shown at top)
+    setSpacingRows(p=>[...p,r]); // always append = toward float
   };
   const removeSpacingRow=id=>setSpacingRows(p=>p.filter(r=>r.id!==id));
   const updateSpacingRow=(id,field,val)=>setSpacingRows(p=>p.map(r=>r.id===id?{...r,[field]:val}:r));
@@ -452,7 +446,7 @@ export default function App(){
 
   const orderedGroups=result?getGroups(result.items.filter(x=>!x.isTorpedo)):[];
   const positions=result?buildPositions([...result.items.filter(x=>!x.isTorpedo)].reverse(),spacingRows,torpedoes):[];
-  const totalLineCm=positions.length>0?positions[positions.length-1].distFromHook+10:0;
+  const totalLineCm=positions.length>0?positions[positions.length-1].distFromHook:0;
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#060f1e,#0b1e3d,#0d2550)",fontFamily:"'Trebuchet MS',sans-serif",color:"#e8f4ff",paddingBottom:48}}>
@@ -551,23 +545,22 @@ export default function App(){
         {/* SPACING TAB */}
         {activeTab==="spacing"&&<Panel>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div style={{fontSize:12,color:"#90caf9",lineHeight:1.6}}>{t.spacingTitle} {t.spacingRepeat}</div>
+            <div style={{fontSize:12,color:"#90caf9",lineHeight:1.6}}>
+              {lang==="el"?"Η 1η γραμμή ξεκινά από τη θηλιά. Κάθε επόμενη προστίθεται προς τον φελλό.":"Row 1 starts from loop. Each new row adds toward float."}
+            </div>
             <button onClick={()=>setSpacingRows([])} style={{background:"#37474f",color:"#90caf9",border:"1px solid #546e7a",borderRadius:8,padding:"6px 12px",fontWeight:700,fontSize:12,cursor:"pointer",flexShrink:0,marginLeft:8}}>↺ Reset</button>
           </div>
-          <div style={{marginBottom:12}}>
-            {/* Β FIX: nearFloat = end of array, nearLoop = start of array */}
-            <div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>{t.nearFloat}</div>
-            <div style={{display:"flex",gap:5,marginBottom:10}}>
-              {[["shot","⚫ "+t.rowTypeShot,"#0d2040","#e3f2fd","#1e4d8a"],["bulk","🔴 "+t.rowTypeBulk,"#1a0808","#ef9a9a","#e5393550"],["torpedo","🔵 "+t.rowTypeTorp,"#071830","#90caf9","#1565c060"]].map(([rt,lbl,bg,col,bc])=>(
-                <button key={rt} onClick={()=>addSpacingRow("start",rt)} style={{flex:1,padding:"7px 4px",background:bg,color:col,border:`1px solid ${bc}`,borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer"}}>{lbl}</button>
-              ))}
-            </div>
-            <div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>{t.nearLoop}</div>
-            <div style={{display:"flex",gap:5}}>
-              {[["shot","⚫ "+t.rowTypeShot,"#0d2040","#e3f2fd","#1e4d8a"],["bulk","🔴 "+t.rowTypeBulk,"#1a0808","#ef9a9a","#e5393550"],["torpedo","🔵 "+t.rowTypeTorp,"#071830","#90caf9","#1565c060"]].map(([rt,lbl,bg,col,bc])=>(
-                <button key={rt} onClick={()=>addSpacingRow("end",rt)} style={{flex:1,padding:"7px 4px",background:bg,color:col,border:`1px solid ${bc}`,borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer"}}>{lbl}</button>
-              ))}
-            </div>
+
+          {/* Single row of add buttons */}
+          <div style={{display:"flex",gap:5,marginBottom:14}}>
+            {[["shot","⚫ "+(lang==="el"?"Βαρίδια":"Shots"),"#0d2040","#e3f2fd","#1e4d8a"],
+              ["bulk","🔴 Bulk","#1a0808","#ef9a9a","#e5393550"],
+              ["torpedo","🔵 "+(lang==="el"?"Τορπίλη":"Torpedo"),"#071830","#90caf9","#1565c060"]
+            ].map(([rt,lbl,bg,col,bc])=>(
+              <button key={rt} onClick={()=>addSpacingRow(rt)} style={{flex:1,padding:"9px 4px",background:bg,color:col,border:`1.5px solid ${bc}`,borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                + {lbl}
+              </button>
+            ))}
           </div>
 
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
@@ -580,8 +573,12 @@ export default function App(){
                   <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,background:GC[idx%GC.length],display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{idx+1}</div>
                   <div style={{fontSize:10,color:ac,fontWeight:700,minWidth:50}}>{tl}</div>
                   {!isT&&<div style={{flex:1}}><div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{t.colPcs}</div><input type="number" min={1} max={30} value={row.count} onChange={e=>updateSpacingRow(row.id,"count",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>}
-                  {isB&&<div style={{flex:1}}><div style={{fontSize:9,color:"#ef9a9a",textTransform:"uppercase",marginBottom:3}}>ΚΕΝΟ ΠΡΙΝ (cm)</div><input type="number" min={0} step={0.5} value={row.spacingBefore||"0"} onChange={e=>updateSpacingRow(row.id,"spacingBefore",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:"#1a0808",border:"1.5px solid #e5393550",borderRadius:7,color:"#ef9a9a",fontSize:14,fontWeight:700,outline:"none"}}/></div>}
-                  <div style={{flex:1}}><div style={{fontSize:9,color:isB?"#69f0ae":"#546e7a",textTransform:"uppercase",marginBottom:3}}>{isB?"ΚΕΝΟ ΜΕΤΑ (cm)":t.colGap}</div><input type="number" min={0} step={0.5} value={row.spacing} onChange={e=>updateSpacingRow(row.id,"spacing",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:isB?"#0a1a0a":"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:isB?"#69f0ae":"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:9,color:isB?"#69f0ae":"#546e7a",textTransform:"uppercase",marginBottom:3}}>
+                      {lang==="el"?"ΑΠΟΣΤΑΣΗ ΑΠΟ ΠΡΟΗΓ. (cm)":"DIST FROM PREV (cm)"}
+                    </div>
+                    <input type="number" min={0} step={0.5} value={row.spacing} onChange={e=>updateSpacingRow(row.id,"spacing",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:isB?"#0a1a0a":"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:isB?"#69f0ae":"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/>
+                  </div>
                   <button onClick={()=>removeSpacingRow(row.id)} style={{flexShrink:0,width:26,height:26,borderRadius:7,background:"#c6282818",color:"#ef5350",border:"1px solid #c6282830",fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                 </div>
 
