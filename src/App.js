@@ -144,45 +144,49 @@ function RigDiagram({positions,totalCm,t,lang}){
   if(!positions||positions.length===0)return null;
 
   const PPC=Math.min(8,Math.max(3,Math.round(380/Math.max(totalCm,10))));
-  const FLOAT_H=100; // extra space so float label doesn't overlap top shot
+  const FLOAT_H=110;
   const HOOK_H=50;
   const totalH=FLOAT_H+totalCm*PPC+HOOK_H;
   const hasTorp=positions.some(p=>p.shot.isTorpedo);
 
+  const BULK_COL="#e53935";
+  const TORP_COL="#42a5f5";
+  const SHOT_COL="#ffa000";
+
+  // Ruler ticks every 5 or 10cm
   const tickStep=totalCm<=50?5:10;
   const ticks=[];
   for(let c=0;c<=totalCm;c+=tickStep)ticks.push(c);
 
-  const BULK_COL="#e53935"; // red for bulk
-  const TORP_COL="#42a5f5";
-  const SHOT_COL="#ffa000";
-
   return(
     <div style={{background:"linear-gradient(180deg,#071d4a,#091830)",borderRadius:14,border:"1.5px solid #1e4d8a",padding:"14px 8px",marginTop:8}}>
       <div style={{fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{t.diagTitle} {totalCm} {t.diagTotal}</div>
-      <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
         <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:BULK_COL}}/><span style={{fontSize:10,color:BULK_COL}}>BULK</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:SHOT_COL}}/><span style={{fontSize:10,color:SHOT_COL}}>{lang==="el"?"Απόσταση":"Spaced"}</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:SHOT_COL}}/><span style={{fontSize:10,color:SHOT_COL}}>{lang==="el"?"Βαρίδι":"Shot"}</span></div>
         {hasTorp&&<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:12,borderRadius:"50%",background:TORP_COL}}/><span style={{fontSize:10,color:TORP_COL}}>{lang==="el"?"Τορπίλη":"Torpedo"}</span></div>}
       </div>
 
       <div style={{display:"flex",gap:0}}>
-        {/* RULER - only show defined spacing values */}
-        <div style={{width:28,flexShrink:0,position:"relative",height:totalH}}>
-          {/* Only show ticks at 0 and totalCm */}
-          <div style={{position:"absolute",top:FLOAT_H+(totalCm)*PPC,right:0,display:"flex",alignItems:"center",gap:2,transform:"translateY(-50%)"}}>
-            <span style={{fontSize:8,color:"#ffd740",fontWeight:700,lineHeight:1}}>0</span>
-            <div style={{width:4,height:1,background:"#ffd740"}}/>
-          </div>
-          <div style={{position:"absolute",top:FLOAT_H,right:0,display:"flex",alignItems:"center",gap:2,transform:"translateY(-50%)"}}>
-            <span style={{fontSize:8,color:"#546e7a",fontWeight:700,lineHeight:1}}>{totalCm}</span>
-            <div style={{width:4,height:1,background:"#37474f"}}/>
-          </div>
+
+        {/* RULER col */}
+        <div style={{width:30,flexShrink:0,position:"relative",height:totalH}}>
+          {ticks.map(c=>{
+            const y=FLOAT_H+(totalCm-c)*PPC;
+            const isZero=c===0;
+            return(
+              <div key={c} style={{position:"absolute",top:y,right:0,display:"flex",alignItems:"center",gap:2,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:8,color:isZero?"#ffd740":"#546e7a",fontWeight:700,lineHeight:1,whiteSpace:"nowrap"}}>{c}</span>
+                <div style={{width:isZero?6:4,height:1,background:isZero?"#ffd740":"#37474f"}}/>
+              </div>
+            );
+          })}
         </div>
 
-        {/* LINE + DOTS */}
-        <div style={{width:32,flexShrink:0,position:"relative",height:totalH,display:"flex",flexDirection:"column",alignItems:"center"}}>
-          {/* Float */}
+        {/* LINE + DOTS col */}
+        <div style={{width:34,flexShrink:0,position:"relative",height:totalH,display:"flex",flexDirection:"column",alignItems:"center"}}>
+
+          {/* Float at top */}
           <div style={{height:FLOAT_H,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
             <div style={{width:3,height:8,background:"#78909c",borderRadius:2}}/>
             <div style={{width:8,height:4,background:"#ffd740",borderRadius:2}}/>
@@ -195,35 +199,40 @@ function RigDiagram({positions,totalCm,t,lang}){
             <div style={{width:3,height:5,background:"#90caf9",borderRadius:"0 0 2px 2px"}}/>
           </div>
 
-          {/* Vertical line with dots */}
+          {/* Vertical fishing line with positioned shot markers */}
           <div style={{position:"relative",height:totalCm*PPC,width:"100%",display:"flex",justifyContent:"center"}}>
+            {/* The line */}
             <div style={{position:"absolute",top:0,bottom:0,width:2.5,background:"linear-gradient(180deg,#546e7a,#78909c)",borderRadius:2}}/>
+
+            {/* Shot dots - bulk shown as multiple overlapping circles at same position */}
             {positions.map((pos,i)=>{
               const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
               const topPx=(totalCm-pos.distFromHook)*PPC;
               const bs=Math.round(9+Math.min(7,pos.shot.grams*7));
+
               if(isTorp){
                 const tw=Math.round(7+Math.min(5,pos.shot.grams*3));
                 const th=Math.round(14+Math.min(12,pos.shot.grams*6));
                 return(
                   <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2,
-                    width:tw,height:th,background:`linear-gradient(160deg,${TORP_COL} 0%,#1976d2 60%,#0d47a1 100%)`,
-                    borderRadius:"50% 50% 50% 50% / 38% 38% 62% 62%",border:`1.5px solid ${TORP_COL}`,
-                    boxShadow:`0 0 6px ${TORP_COL}55`}}/>
+                    width:tw,height:th,
+                    background:`linear-gradient(160deg,${TORP_COL} 0%,#1976d2 60%,#0d47a1 100%)`,
+                    borderRadius:"50% 50% 50% 50% / 38% 38% 62% 62%",
+                    border:`1.5px solid ${TORP_COL}`,boxShadow:`0 0 6px ${TORP_COL}55`}}/>
                 );
               }
-              // Both bulk and shot: circle, different colors
+
               const col=isBulk?BULK_COL:SHOT_COL;
               return(
                 <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2,
                   width:bs,height:bs,borderRadius:"50%",
                   background:`radial-gradient(circle at 35% 35%,${col}bb,#0d1f35)`,
-                  border:`2px solid ${col}`,boxShadow:`0 0 6px ${col}55`}}/>
+                  border:`2px solid ${col}`,boxShadow:`0 0 5px ${col}55`}}/>
               );
             })}
           </div>
 
-          {/* Hook */}
+          {/* Hook at bottom */}
           <div style={{height:HOOK_H,display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{width:18,height:11,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#a0aab4,#546e7a)",border:"2px solid #78909c",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🔗</div>
             <div style={{width:2,height:8,background:"#546e7a"}}/>
@@ -231,40 +240,40 @@ function RigDiagram({positions,totalCm,t,lang}){
           </div>
         </div>
 
-        {/* LABELS */}
-        <div style={{flex:1,position:"relative",height:totalH,minWidth:0,paddingLeft:6}}>
-          {/* Float label - at top with extra margin */}
-          <div style={{position:"absolute",top:8,left:6}}>
+        {/* LABELS col */}
+        <div style={{flex:1,position:"relative",height:totalH,minWidth:0,paddingLeft:8}}>
+
+          {/* Float label - fixed at very top */}
+          <div style={{position:"absolute",top:6,left:8}}>
             <div style={{fontSize:10,color:"#90caf9",fontWeight:700}}>{t.floatTop}</div>
-            <div style={{fontSize:9,color:"#546e7a"}}>{totalCm}cm {t.fromLoop}</div>
+            <div style={{fontSize:9,color:"#546e7a"}}>{totalCm}cm</div>
           </div>
+
           {/* Hook label */}
-          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+6,left:6}}>
+          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+6,left:8}}>
             <span style={{fontSize:10,fontWeight:800,color:"#ffd740"}}>🔗 0 cm</span>
           </div>
 
-          {/* Shot labels */}
+          {/* Shot labels - bulk grouped, show only first */}
           {positions.map((pos,i)=>{
             const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
             const col=isTorp?TORP_COL:isBulk?BULK_COL:SHOT_COL;
             const topPx=FLOAT_H+(totalCm-pos.distFromHook)*PPC;
 
-            // Bulk: show label only on first of consecutive group
+            // Bulk: only label on first of consecutive group
             if(isBulk&&i>0&&positions[i-1].rowType==="bulk")return null;
             let bulkCount=0;
             if(isBulk){for(let j=i;j<positions.length&&positions[j].rowType==="bulk";j++)bulkCount++;}
 
             return(
-              <div key={i} style={{position:"absolute",top:topPx,left:6,transform:"translateY(-50%)",lineHeight:1.2}}>
-                <div style={{display:"flex",alignItems:"center",gap:3}}>
-                  <span style={{fontSize:10,fontWeight:800,color:col,whiteSpace:"nowrap"}}>
-                    {isTorp?"🔵 ":""}{isBulk?`${bulkCount}× ${pos.shot.code}`:pos.shot.code}
-                  </span>
-                  {isBulk&&<span style={{fontSize:8,color:BULK_COL,fontWeight:700,background:"#e5393520",borderRadius:2,padding:"1px 3px"}}>BULK</span>}
-                </div>
+              <div key={`lbl${i}`} style={{position:"absolute",top:topPx,left:8,transform:"translateY(-50%)",lineHeight:1.3}}>
+                <span style={{fontSize:10,fontWeight:800,color:col,whiteSpace:"nowrap"}}>
+                  {isTorp?"🔵 ":""}{isBulk?`${bulkCount}× ${pos.shot.code}`:pos.shot.code}
+                  {isBulk&&<span style={{fontSize:8,marginLeft:3,color:BULK_COL,background:"#e5393520",borderRadius:2,padding:"1px 3px"}}>BULK</span>}
+                </span>
                 <div style={{fontSize:9,color:"#78909c",whiteSpace:"nowrap"}}>
                   {isBulk
-                    ?<><span style={{color:BULK_COL}}>{pos.distFromHook.toFixed(1)}cm</span> · <span style={{color:"#78909c"}}>{pos.shot.grams.toFixed(3)}g/τεμ</span></>
+                    ?<>{pos.shot.grams.toFixed(3)}g/τεμ · <span style={{color:BULK_COL,fontWeight:700}}>{pos.distFromHook.toFixed(1)}cm</span></>
                     :<>{pos.shot.grams.toFixed(isTorp?2:3)}g · <span style={{color:"#ffd740",fontWeight:700}}>{pos.distFromHook.toFixed(1)}cm</span></>
                   }
                 </div>
@@ -272,19 +281,19 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Spacing labels: centered between consecutive non-bulk shots */}
+          {/* Spacing labels: centered between two consecutive non-bulk shots */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
-            // Show spacing label only for non-bulk shots with spacing > 0
-            if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo")return null;
+            if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
             if(pos.spacingCm<=0)return null;
-            // Center between prev and current
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
-              <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:6,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:8,color:"#546e7a",background:"#0d1f3580",borderRadius:3,padding:"1px 4px"}}>↕ {pos.spacingCm}cm</span>
+              <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:8,color:"#546e7a",background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #1e4d8a30"}}>
+                  ↕ {pos.spacingCm}cm
+                </span>
               </div>
             );
           })}
@@ -293,6 +302,8 @@ function RigDiagram({positions,totalCm,t,lang}){
     </div>
   );
 }
+
+
 
 function Panel({children}){return<div style={{background:"linear-gradient(135deg,#0d2245,#091830)",borderRadius:"0 12px 12px 12px",border:"1px solid #1a3d6e",padding:"18px 14px",marginBottom:14,boxShadow:"0 4px 28px #00000050"}}>{children}</div>;}
 function Field({label,children,mb=16}){return<div style={{marginBottom:mb}}><label style={{display:"block",fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>{label}</label>{children}</div>;}
