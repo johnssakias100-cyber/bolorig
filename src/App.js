@@ -139,130 +139,134 @@ function TorpedoShape({grams}){
   );
 }
 
-// ── Vertical Rig Diagram (proportional scale) ──
+// ── Horizontal Rig Diagram (like Excel layout) ──
 function RigDiagram({positions,totalCm,t,lang}){
   if(!positions||positions.length===0)return null;
 
-  // Scale: pixels per cm. Min 4px/cm, max 8px/cm, target ~400px total height
-  const PPC=Math.min(8,Math.max(4,Math.round(400/Math.max(totalCm,10))));
-  const FLOAT_H=80; // height for float area at top
-  const HOOK_H=40;  // height for hook area at bottom
-  const totalH=FLOAT_H+totalCm*PPC+HOOK_H;
+  // Scale: pixels per cm. Fit in ~320px width
+  const maxW=320;
+  const PPC=Math.min(6,Math.max(2,Math.floor(maxW/Math.max(totalCm,10))));
+  const totalW=totalCm*PPC;
+  const LINE_Y=60; // y position of the main line from top
+  const DOT_R=7;   // default dot radius
 
   const hasTorp=positions.some(p=>p.shot.isTorpedo);
 
-  // Build ruler ticks (every 5cm or 10cm depending on scale)
+  // Group consecutive bulk shots
+  const bulkGroups=[];
+  let inBulk=false,bulkStart=0,bulkEnd=0;
+  positions.forEach((pos,i)=>{
+    if(pos.rowType==="bulk"){
+      if(!inBulk){inBulk=true;bulkStart=pos.distFromHook;}
+      bulkEnd=pos.distFromHook;
+    } else {
+      if(inBulk){bulkGroups.push({start:bulkStart,end:bulkEnd,count:positions.slice(0,i).filter(p=>p.rowType==="bulk").length});inBulk=false;}
+    }
+  });
+  if(inBulk)bulkGroups.push({start:bulkStart,end:bulkEnd});
+
+  // Ruler ticks
   const tickStep=totalCm<=50?5:10;
   const ticks=[];
   for(let c=0;c<=totalCm;c+=tickStep)ticks.push(c);
 
+  const totalH=LINE_Y+60; // total svg height
+
   return(
-    <div style={{background:"linear-gradient(180deg,#071d4a,#091830)",borderRadius:14,border:"1.5px solid #1e4d8a",padding:"14px 8px 14px",marginTop:8}}>
+    <div style={{background:"linear-gradient(180deg,#071d4a,#091830)",borderRadius:14,border:"1.5px solid #1e4d8a",padding:"12px 8px",marginTop:8,overflowX:"auto"}}>
       {/* Header */}
-      <div style={{fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:8,paddingLeft:6}}>{t.diagTitle} {totalCm} {t.diagTotal}</div>
-      <div style={{display:"flex",gap:10,marginBottom:10,paddingLeft:6,flexWrap:"wrap"}}>
-        <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:"#e53935"}}/><span style={{fontSize:10,color:"#e57373"}}>BULK</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:"#ffa000"}}/><span style={{fontSize:10,color:"#ffd740"}}>{lang==="el"?"Απόσταση":"Spaced"}</span></div>
-        {hasTorp&&<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:14,borderRadius:"50%",background:"#1976d2",border:"1px solid #42a5f5"}}/><span style={{fontSize:10,color:"#90caf9"}}>{lang==="el"?"Τορπίλη":"Torpedo"}</span></div>}
-        <div style={{fontSize:10,color:"#546e7a",marginLeft:"auto"}}>{PPC}px/cm</div>
+      <div style={{fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>{t.diagTitle} {totalCm} {t.diagTotal}</div>
+      <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+        <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:"50%",background:"#e53935"}}/><span style={{fontSize:9,color:"#e57373"}}>BULK</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:"50%",background:"#90caf9"}}/><span style={{fontSize:9,color:"#90caf9"}}>{lang==="el"?"Απόσταση":"Spaced"}</span></div>
+        {hasTorp&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:6,height:10,borderRadius:"50%",background:"#1976d2",border:"1px solid #42a5f5"}}/><span style={{fontSize:9,color:"#42a5f5"}}>{lang==="el"?"Τορπίλη":"Torpedo"}</span></div>}
       </div>
 
-      {/* Main diagram area */}
-      <div style={{display:"flex",gap:0,position:"relative"}}>
+      {/* SVG diagram */}
+      <div style={{overflowX:"auto"}}>
+        <svg width={totalW+120} height={totalH} style={{display:"block"}}>
+          {/* Ruler ticks below line */}
+          {ticks.map(c=>(
+            <g key={c}>
+              <line x1={c*PPC} y1={LINE_Y+DOT_R+2} x2={c*PPC} y2={LINE_Y+DOT_R+8} stroke="#37474f" strokeWidth={1}/>
+              <text x={c*PPC} y={LINE_Y+DOT_R+18} textAnchor="middle" fontSize={8} fill="#546e7a">{c}</text>
+            </g>
+          ))}
+          <text x={totalW/2} y={LINE_Y+DOT_R+28} textAnchor="middle" fontSize={8} fill="#37474f">cm</text>
 
-        {/* RULER col (leftmost) */}
-        <div style={{width:32,flexShrink:0,position:"relative",height:totalH}}>
-          {ticks.map(c=>{
-            const y=FLOAT_H+(totalCm-c)*PPC;
-            return(
-              <div key={c} style={{position:"absolute",top:y,right:0,display:"flex",alignItems:"center",gap:2}}>
-                <span style={{fontSize:8,color:"#546e7a",fontWeight:700,lineHeight:1}}>{c}</span>
-                <div style={{width:5,height:1,background:"#37474f"}}/>
-              </div>
-            );
-          })}
-          <div style={{position:"absolute",top:FLOAT_H,right:0,display:"flex",alignItems:"center",gap:2}}>
-            <span style={{fontSize:8,color:"#ffd740",fontWeight:800,lineHeight:1}}>{totalCm}</span>
-            <div style={{width:5,height:1,background:"#ffd740"}}/>
-          </div>
-        </div>
+          {/* Main horizontal line */}
+          <line x1={0} y1={LINE_Y} x2={totalW+10} y2={LINE_Y} stroke="#546e7a" strokeWidth={2.5}/>
 
-        {/* LINE col */}
-        <div style={{width:30,flexShrink:0,position:"relative",height:totalH,display:"flex",flexDirection:"column",alignItems:"center"}}>
-          {/* Float */}
-          <div style={{height:FLOAT_H,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
-            <div style={{width:3,height:10,background:"#78909c",borderRadius:2}}/>
-            <div style={{width:10,height:5,background:"#ffd740",borderRadius:2,border:"1px solid #ffa000"}}/>
-            <div style={{width:3,height:8,background:"#78909c",borderRadius:2}}/>
-            <div style={{width:4,height:12,background:"linear-gradient(180deg,#ef5350 50%,#fdd835 50%)",borderRadius:"3px 3px 0 0"}}/>
-            <div style={{width:24,height:36,background:"linear-gradient(160deg,#b0c4de,#4a7fa0,#2c5f80)",borderRadius:"50% 50% 44% 44%/58% 58% 42% 42%",border:"2px solid #90caf9",position:"relative",overflow:"hidden",flexShrink:0}}>
-              <div style={{position:"absolute",top:10,left:2,right:2,height:5,background:"#e53935",borderRadius:1}}/>
-              <div style={{position:"absolute",top:15,left:2,right:2,height:3,background:"#fdd835",borderRadius:1}}/>
-            </div>
-            <div style={{width:3,height:6,background:"#90caf9",borderRadius:"0 0 3px 3px"}}/>
-          </div>
+          {/* Hook at left (0cm) */}
+          <text x={-2} y={LINE_Y+4} fontSize={14} textAnchor="middle">🔗</text>
 
-          {/* Vertical line from totalCm down to 0 */}
-          <div style={{position:"relative",height:totalCm*PPC,width:"100%",display:"flex",justifyContent:"center"}}>
-            <div style={{position:"absolute",top:0,bottom:0,width:3,background:"linear-gradient(180deg,#546e7a,#78909c)",borderRadius:2}}/>
-            {/* Shot markers */}
-            {positions.map((pos,i)=>{
-              const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
-              const col=isTorp?"#42a5f5":isBulk?"#e53935":GC[i%GC.length];
-              const bs=isTorp?null:Math.round(10+Math.min(8,pos.shot.grams*7));
-              // distFromHook=0 → bottom, distFromHook=totalCm → top
-              const topPx=(totalCm-pos.distFromHook)*PPC;
-              return(
-                <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2}}>
-                  {isTorp
-                    ?<div style={{width:Math.round(8+Math.min(6,pos.shot.grams*4)),height:Math.round(16+Math.min(14,pos.shot.grams*7)),background:"linear-gradient(160deg,#90caf9 0%,#1976d2 60%,#0d47a1 100%)",borderRadius:"50% 50% 50% 50% / 38% 38% 62% 62%",border:"1.5px solid #42a5f5",flexShrink:0}}/>
-                    :<div style={{width:bs,height:bs,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${col}bb,#0d1f35)`,border:`2px solid ${col}`,boxShadow:`0 0 6px ${col}55`}}/>
-                  }
-                </div>
-              );
-            })}
-          </div>
+          {/* Float at right */}
+          <g transform={`translate(${totalW+14},${LINE_Y})`}>
+            <ellipse cx={0} cy={0} rx={10} ry={18} fill="url(#floatGrad)" stroke="#90caf9" strokeWidth={1.5}/>
+            <rect x={-8} y={-6} width={16} height={4} fill="#e53935" rx={1}/>
+            <rect x={-8} y={-1} width={16} height={3} fill="#fdd835" rx={1}/>
+            <line x1={0} y1={18} x2={0} y2={28} stroke="#90caf9" strokeWidth={2}/>
+          </g>
+          <defs>
+            <linearGradient id="floatGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#b0c4de"/>
+              <stop offset="50%" stopColor="#4a7fa0"/>
+              <stop offset="100%" stopColor="#2c5f80"/>
+            </linearGradient>
+          </defs>
 
-          {/* Hook */}
-          <div style={{height:HOOK_H,display:"flex",flexDirection:"column",alignItems:"center"}}>
-            <div style={{width:20,height:12,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#a0aab4,#546e7a)",border:"2px solid #78909c",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🔗</div>
-            <div style={{width:2,height:10,background:"#546e7a"}}/>
-            <div style={{fontSize:18,lineHeight:1}}>🪝</div>
-          </div>
-        </div>
-
-        {/* LABELS col */}
-        <div style={{flex:1,position:"relative",height:totalH,minWidth:0}}>
-          {/* Float label */}
-          <div style={{position:"absolute",top:FLOAT_H-24,left:8}}>
-            <div style={{fontSize:10,color:"#90caf9",fontWeight:700}}>{t.floatTop}</div>
-            <div style={{fontSize:9,color:"#546e7a"}}>{totalCm} cm {t.fromLoop}</div>
-          </div>
-          {/* Hook label */}
-          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+4,left:8}}>
-            <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#ffa00018",border:"1px solid #ffa00050",borderRadius:5,padding:"2px 6px"}}>
-              <span style={{fontSize:10,fontWeight:800,color:"#ffd740"}}>🔗 0 cm</span>
-            </div>
-          </div>
-          {/* Shot labels */}
+          {/* Shot dots and labels */}
           {positions.map((pos,i)=>{
             const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
-            const col=isTorp?"#42a5f5":isBulk?"#e53935":GC[i%GC.length];
-            const topPx=FLOAT_H+(totalCm-pos.distFromHook)*PPC;
+            const x=pos.distFromHook*PPC;
+            const col=isTorp?"#42a5f5":isBulk?"#e53935":"#90caf9";
+            const r=isTorp?5:isBulk?DOT_R-1:DOT_R;
+            // Labels above line for first of each group, below for spacing
+            const isFirstOfGroup=i===0||(positions[i-1].rowType!==pos.rowType)||
+              (pos.rowType==="shot"&&pos.spacingCm>0&&i>0&&positions[i-1].distFromHook!==pos.distFromHook-pos.spacingCm);
             return(
-              <div key={i} style={{position:"absolute",top:topPx,left:8,transform:"translateY(-50%)",lineHeight:1.2}}>
-                <div style={{display:"flex",alignItems:"center",gap:3}}>
-                  <span style={{fontSize:10,fontWeight:800,color:col,whiteSpace:"nowrap"}}>{isTorp?"🔵 ":""}{pos.shot.code}</span>
-                  {isBulk&&<span style={{fontSize:8,color:"#e53935",fontWeight:700,background:"#e5393515",borderRadius:2,padding:"1px 3px"}}>BULK</span>}
-                </div>
-                <div style={{fontSize:9,color:"#78909c",whiteSpace:"nowrap"}}>
-                  {pos.shot.grams.toFixed(isTorp?2:3)}g · <span style={{color:"#ffd740",fontWeight:700}}>{pos.distFromHook.toFixed(1)}cm</span>
-                  {pos.spacingCm>0&&<span style={{color:"#546e7a"}}> ↕{pos.spacingCm}cm</span>}
-                </div>
-              </div>
+              <g key={i}>
+                {/* Dot */}
+                {isTorp
+                  ?<ellipse cx={x} cy={LINE_Y} rx={4} ry={7} fill="#1565c0" stroke="#42a5f5" strokeWidth={1.5}/>
+                  :<circle cx={x} cy={LINE_Y} r={r} fill={`${col}33`} stroke={col} strokeWidth={2}/>
+                }
+                {/* Label above: shot code for non-bulk, count for bulk */}
+                {isBulk&&i>0&&positions[i-1].rowType==="bulk"?null:(
+                  <text x={x} y={LINE_Y-r-3} textAnchor="middle" fontSize={8} fill={col} fontWeight="bold">
+                    {isBulk?`${positions.filter(p=>p.rowType==="bulk").length}×`:pos.shot.code}
+                  </text>
+                )}
+                {/* Spacing label below line */}
+                {!isBulk&&pos.spacingCm>0&&(
+                  <g>
+                    <line x1={x-pos.spacingCm*PPC/2} y1={LINE_Y+DOT_R+2} x2={x} y2={LINE_Y+DOT_R+2} stroke={col} strokeWidth={1} strokeDasharray="2,2"/>
+                    <text x={x-pos.spacingCm*PPC/2} y={LINE_Y+DOT_R+10} textAnchor="middle" fontSize={7} fill="#78909c">{pos.spacingCm}cm</text>
+                  </g>
+                )}
+              </g>
             );
           })}
-        </div>
+
+          {/* Bulk bracket above */}
+          {positions.filter((p,i)=>{
+            return p.rowType==="bulk"&&(i===0||positions[i-1].rowType!=="bulk");
+          }).map((startPos,gi)=>{
+            const bulkPoss=positions.filter(p=>p.rowType==="bulk");
+            if(bulkPoss.length===0)return null;
+            const x1=bulkPoss[0].distFromHook*PPC;
+            const x2=bulkPoss[bulkPoss.length-1].distFromHook*PPC;
+            const cnt=bulkPoss.length;
+            return(
+              <g key={gi}>
+                <line x1={x1} y1={LINE_Y-DOT_R-10} x2={x2} y2={LINE_Y-DOT_R-10} stroke="#e53935" strokeWidth={1.5}/>
+                <line x1={x1} y1={LINE_Y-DOT_R-10} x2={x1} y2={LINE_Y-DOT_R-5} stroke="#e53935" strokeWidth={1}/>
+                <line x1={x2} y1={LINE_Y-DOT_R-10} x2={x2} y2={LINE_Y-DOT_R-5} stroke="#e53935" strokeWidth={1}/>
+                <text x={(x1+x2)/2} y={LINE_Y-DOT_R-13} textAnchor="middle" fontSize={8} fill="#e57373" fontWeight="bold">{cnt}×BULK</text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
     </div>
   );
