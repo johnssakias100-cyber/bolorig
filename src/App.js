@@ -354,7 +354,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             if(i<positions.length-1&&positions[i+1].rowType==="bulk")return null;
             const next=positions[i+1];
             if(!next)return null;
-            const midCm=pos.distFromHook+pos.bulkAfter/2;
+            const midCm=(pos.distFromHook+next.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`ba${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
