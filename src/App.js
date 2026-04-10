@@ -273,26 +273,45 @@ function RigDiagram({positions,totalCm,t,lang}){
                 </span>
                 <div style={{fontSize:9,color:"#78909c",whiteSpace:"nowrap"}}>
                   {isBulk
-                    ?<>{pos.shot.grams.toFixed(3)}g/τεμ · <span style={{color:BULK_COL,fontWeight:700}}>{pos.distFromHook.toFixed(1)}cm</span></>
-                    :<>{pos.shot.grams.toFixed(isTorp?2:3)}g · <span style={{color:"#ffd740",fontWeight:700}}>{pos.distFromHook.toFixed(1)}cm</span></>
+                    ?<span style={{color:BULK_COL}}>{pos.shot.grams.toFixed(3)}g/τεμ</span>
+                    :<span>{pos.shot.grams.toFixed(isTorp?2:3)}g</span>
                   }
                 </div>
               </div>
             );
           })}
 
-          {/* Spacing labels: centered between two consecutive non-bulk shots */}
+          {/* Spacing labels: centered between two consecutive shots */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
+            // Skip if either is bulk or torpedo
             if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
             if(pos.spacingCm<=0)return null;
+            // Place label at midpoint between the two shots
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:8,color:"#546e7a",background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #1e4d8a30"}}>
-                  ↕ {pos.spacingCm}cm
+                <span style={{fontSize:9,color:"#ffa000",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #ffa00030"}}>
+                  {pos.spacingCm}cm
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Bulk gap label: between last bulk and next shot */}
+          {positions.map((pos,i)=>{
+            if(i===0)return null;
+            const prev=positions[i-1];
+            if(prev.rowType!=="bulk"||pos.rowType==="bulk")return null;
+            if(prev.spacingCm<=0)return null;
+            const midCm=(pos.distFromHook+prev.distFromHook)/2;
+            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
+            return(
+              <div key={`bg${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:BULK_COL,fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:`1px solid ${BULK_COL}30`}}>
+                  {prev.spacingCm}cm
                 </span>
               </div>
             );
