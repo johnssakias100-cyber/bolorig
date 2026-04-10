@@ -92,43 +92,40 @@ function getGroups(items){const g=[];let i=0;while(i<items.length){const c=items
 
 function buildPositions(items,spacingRows,torpedoes){
   const pos=[];let cursor=0,si=0;
-  let skipNextSpacing=false;
   for(let ri=0;ri<spacingRows.length;ri++){
-    const row=spacingRows[ri],isLast=ri===spacingRows.length-1,cm=parseFloat(row.spacing)||0;
+    const row=spacingRows[ri],isLast=ri===spacingRows.length-1;
+    const cm=parseFloat(row.spacing)||0;
     if(row.type==="torpedo"){
-      const tp=row.torpedoMode==="list"
-        ? torpedoes&&torpedoes.find(t=>t.id===row.torpedoId)
-        : null;
-      const grams=row.torpedoMode==="list"
-        ? (tp?tp.grams:0)
-        : ((parseFloat(row.torpedoPct)||60)/100*(parseFloat(row.torpedoTarget)||2));
+      const tp=row.torpedoMode==="list"?torpedoes&&torpedoes.find(t=>t.id===row.torpedoId):null;
+      const grams=row.torpedoMode==="list"?(tp?tp.grams:0):((parseFloat(row.torpedoPct)||60)/100*(parseFloat(row.torpedoTarget)||2));
       const code=row.torpedoMode==="list"?(tp?tp.code:"?"):`Auto ${(parseFloat(row.torpedoPct)||60)}%`;
-      if(pos.length>0||cursor>0)cursor+=cm;
-      skipNextSpacing=false;
       pos.push({shot:{grams,code,isTorpedo:true,id:row.id},distFromHook:cursor,spacingCm:cm,rowType:"torpedo"});
+      cursor+=cm;
       continue;
     }
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
     const bulkBefore=isBulk?(parseFloat(row.spacingBefore)||0):0;
     const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
-    // bulkBefore is purely visual label — spacing already handled by preceding shot rows
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
-      if(!isBulk){
-        if(pos.length>0){
-          if(!skipNextSpacing)cursor+=cm;
-          skipNextSpacing=false;
-        }
-      }
       const isFirstOfBulk=isBulk&&x===0;
       const isLastOfBulk=isBulk&&x===rc-1;
       pos.push({shot:items[idx],distFromHook:cursor,spacingCm:0,rowType:row.type||"shot",
         bulkBefore:isFirstOfBulk?bulkBefore:0,
-        bulkAfter:isLastOfBulk?bulkGap:0});si++;
+        bulkAfter:isLastOfBulk?bulkGap:0});
+      si++;
     }
-    if(isBulk&&bulkGap>0&&pos.length>0){cursor+=bulkGap;skipNextSpacing=true;}
-    if(isLast&&si<items.length){while(si<items.length){if(!isBulk){if(!skipNextSpacing)cursor+=cm;skipNextSpacing=false;}pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot",bulkBefore:0,bulkAfter:0});si++;}}
+    // After placing all items of this row, advance cursor
+    if(!isBulk) cursor+=cm;
+    else cursor+=bulkGap;
+    if(isLast&&si<items.length){
+      while(si<items.length){
+        pos.push({shot:items[si],distFromHook:cursor,spacingCm:cm,rowType:"shot",bulkBefore:0,bulkAfter:0});
+        si++;
+        cursor+=cm;
+      }
+    }
   }
   return pos;
 }
