@@ -113,7 +113,7 @@ function buildPositions(items,spacingRows,torpedoes){
     // Add "before" gap before bulk group
     if(isBulk&&bulkBefore>0)cursor+=bulkBefore;
     for(let x=0;x<rc;x++){
-      if(si>=items.length&&!isLast)break;
+      if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
       if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
       const isFirstOfBulk=isBulk&&x===0;
@@ -310,7 +310,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Spacing labels: between every two consecutive non-bulk shots, using distFromHook diff */}
+          {/* Spacing labels: between every two consecutive non-bulk shots */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
@@ -320,7 +320,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
-              <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
+              <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%) translateY(12px)"}}>
                 <span style={{fontSize:9,color:"#ffa000",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #ffa00030"}}>
                   {gap}cm
                 </span>
@@ -328,15 +328,13 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Bulk BEFORE label: above the bulk group */}
+          {/* Bulk BEFORE label: between prev shot and bulk group */}
           {positions.map((pos,i)=>{
             if(pos.rowType!=="bulk"||!pos.bulkBefore||pos.bulkBefore<=0)return null;
-            // Only show on first bulk item
             if(i>0&&positions[i-1].rowType==="bulk")return null;
-            // Midpoint between previous shot and this bulk
             const prev=positions[i-1];
             if(!prev)return null;
-            const midCm=pos.distFromHook+pos.bulkBefore/2;
+            const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`bb${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
@@ -347,18 +345,19 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Bulk AFTER label: below the bulk group */}
+          {/* Bulk AFTER label: between bulk group and next shot */}
           {positions.map((pos,i)=>{
             if(pos.rowType!=="bulk"||!pos.bulkAfter||pos.bulkAfter<=0)return null;
-            // Only show on last bulk item
             if(i<positions.length-1&&positions[i+1].rowType==="bulk")return null;
             const next=positions[i+1];
             if(!next)return null;
+            // bulk.distFromHook is LARGER than next.distFromHook (bulk is higher on line)
+            // midpoint between them
             const midCm=(pos.distFromHook+next.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`ba${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:BULK_COL,fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:`1px solid ${BULK_COL}30`}}>
+                <span style={{fontSize:9,color:"#69f0ae",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #69f0ae30"}}>
                   {pos.bulkAfter}cm
                 </span>
               </div>
