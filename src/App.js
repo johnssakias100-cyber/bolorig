@@ -175,8 +175,10 @@ function RigDiagram({positions,totalCm,t,lang}){
 
       <div style={{display:"flex",gap:0}}>
 
-        {/* RULER col */}
-        <div style={{width:44,flexShrink:0,position:"relative",height:totalH}}>
+        {/* RULER col: left half = gap labels, right half = tick numbers */}
+        <div style={{width:56,flexShrink:0,position:"relative",height:totalH}}>
+
+          {/* Tick numbers — right side */}
           {ticks.map(c=>{
             const y=FLOAT_H+(totalCm-c)*PPC;
             const isZero=c===0;
@@ -188,7 +190,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* All gap labels in ruler col — spacing between shots */}
+          {/* Gap labels — left side, don't overlap ticks */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
@@ -198,15 +200,13 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
-              <div key={`sp${i}`} style={{position:"absolute",top:midPx,right:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#ffd740",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 4px"}}>
-                  {gap}
-                </span>
+              <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:0,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{gap}</span>
               </div>
             );
           })}
 
-          {/* Bulk BEFORE gap label in ruler col */}
+          {/* Bulk BEFORE gap label — left side */}
           {positions.map((pos,i)=>{
             if(pos.rowType!=="bulk"||!pos.bulkBefore||pos.bulkBefore<=0)return null;
             if(i>0&&positions[i-1].rowType==="bulk")return null;
@@ -215,15 +215,13 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
-              <div key={`bb${i}`} style={{position:"absolute",top:midPx,right:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#ffd740",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 4px"}}>
-                  {pos.bulkBefore}
-                </span>
+              <div key={`bb${i}`} style={{position:"absolute",top:midPx,left:0,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{pos.bulkBefore}</span>
               </div>
             );
           })}
 
-          {/* Bulk AFTER gap label in ruler col */}
+          {/* Bulk AFTER gap label — left side */}
           {positions.map((pos,i)=>{
             if(pos.rowType!=="bulk"||!pos.bulkAfter||pos.bulkAfter<=0)return null;
             if(i<positions.length-1&&positions[i+1].rowType==="bulk")return null;
@@ -232,10 +230,8 @@ function RigDiagram({positions,totalCm,t,lang}){
             const midCm=(pos.distFromHook+next.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
-              <div key={`ba${i}`} style={{position:"absolute",top:midPx,right:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#ffd740",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 4px"}}>
-                  {pos.bulkAfter}
-                </span>
+              <div key={`ba${i}`} style={{position:"absolute",top:midPx,left:0,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:800,lineHeight:1,whiteSpace:"nowrap"}}>{pos.bulkAfter}</span>
               </div>
             );
           })}
