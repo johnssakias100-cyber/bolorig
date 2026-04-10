@@ -148,7 +148,7 @@ function TorpedoShape({grams}){
 function RigDiagram({positions,totalCm,t,lang}){
   if(!positions||positions.length===0)return null;
 
-  const PPC=Math.min(8,Math.max(3,Math.round(380/Math.max(totalCm,10))));
+  const PPC=Math.min(14,Math.max(5,Math.round(500/Math.max(totalCm,10))));
   const FLOAT_H=40;
   const HOOK_H=40;
   const totalH=FLOAT_H+totalCm*PPC+HOOK_H;
@@ -189,11 +189,13 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Gap labels — left side, don't overlap ticks */}
+          {/* Gap labels — left side */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
-            if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
+            if(pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
+            // Skip within bulk group
+            if(pos.rowType==="bulk"&&prev.rowType==="bulk")return null;
             const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
             if(gap<=0)return null;
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
@@ -222,7 +224,14 @@ function RigDiagram({positions,totalCm,t,lang}){
 
           {/* Float above ruler */}
           <div style={{position:"absolute",top:0,left:0,height:FLOAT_H,display:"flex",alignItems:"center",justifyContent:"flex-start"}}>
-            <span style={{fontSize:22}}>🎣</span>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+              <div style={{width:3,height:6,background:"#78909c",borderRadius:2}}/>
+              <div style={{width:18,height:28,background:"linear-gradient(160deg,#b0c4de,#4a7fa0,#2c5f80)",borderRadius:"50% 50% 44% 44%/58% 58% 42% 42%",border:"2px solid #90caf9",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:7,left:1,right:1,height:4,background:"#e53935",borderRadius:1}}/>
+                <div style={{position:"absolute",top:11,left:1,right:1,height:3,background:"#fdd835",borderRadius:1}}/>
+              </div>
+              <div style={{width:3,height:4,background:"#90caf9"}}/>
+            </div>
           </div>
 
           {/* Hook below ruler */}
