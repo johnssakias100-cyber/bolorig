@@ -451,7 +451,8 @@ export default function App(){
 
   const orderedGroups=result?getGroups(result.items.filter(x=>!x.isTorpedo)):[];
   const positions=result?buildPositions([...result.items.filter(x=>!x.isTorpedo)].reverse(),spacingRows,torpedoes):[];
-  const totalLineCm=positions.length>0?positions[positions.length-1].distFromHook:0;
+  // totalLineCm = max distFromHook across all positions including torpedoes
+  const totalLineCm=positions.length>0?Math.max(...positions.map(p=>p.distFromHook)):0;
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#060f1e,#0b1e3d,#0d2550)",fontFamily:"'Trebuchet MS',sans-serif",color:"#e8f4ff",paddingBottom:48}}>
