@@ -149,8 +149,8 @@ function RigDiagram({positions,totalCm,t,lang}){
   if(!positions||positions.length===0)return null;
 
   const PPC=Math.min(8,Math.max(3,Math.round(380/Math.max(totalCm,10))));
-  const FLOAT_H=110;
-  const HOOK_H=50;
+  const FLOAT_H=40;
+  const HOOK_H=40;
   const totalH=FLOAT_H+totalCm*PPC+HOOK_H;
   const hasTorp=positions.some(p=>p.shot.isTorpedo);
 
@@ -220,9 +220,14 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Hook 0 label — bottom of ruler */}
-          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+6,left:0}}>
-            <span style={{fontSize:9,fontWeight:800,color:"#ffd740"}}>🔗0</span>
+          {/* Float above ruler */}
+          <div style={{position:"absolute",top:0,left:0,height:FLOAT_H,display:"flex",alignItems:"center",justifyContent:"flex-start"}}>
+            <span style={{fontSize:22}}>🎣</span>
+          </div>
+
+          {/* Hook below ruler */}
+          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC,left:0,height:HOOK_H,display:"flex",alignItems:"center",justifyContent:"flex-start"}}>
+            <span style={{fontSize:22}}>🪝</span>
           </div>
 
           {/* Bulk AFTER gap label — left side */}
@@ -242,20 +247,7 @@ function RigDiagram({positions,totalCm,t,lang}){
         </div>
 
         {/* LINE + DOTS col */}
-        <div style={{width:34,flexShrink:0,position:"relative",height:totalH,display:"flex",flexDirection:"column",alignItems:"center"}}>
-
-          {/* Float at top */}
-          <div style={{height:FLOAT_H,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
-            <div style={{width:3,height:8,background:"#78909c",borderRadius:2}}/>
-            <div style={{width:8,height:4,background:"#ffd740",borderRadius:2}}/>
-            <div style={{width:3,height:6,background:"#78909c",borderRadius:2}}/>
-            <div style={{width:4,height:12,background:"linear-gradient(180deg,#ef5350 50%,#fdd835 50%)",borderRadius:"3px 3px 0 0"}}/>
-            <div style={{width:22,height:34,background:"linear-gradient(160deg,#b0c4de,#4a7fa0,#2c5f80)",borderRadius:"50% 50% 44% 44%/58% 58% 42% 42%",border:"2px solid #90caf9",position:"relative",overflow:"hidden",flexShrink:0}}>
-              <div style={{position:"absolute",top:9,left:2,right:2,height:5,background:"#e53935",borderRadius:1}}/>
-              <div style={{position:"absolute",top:14,left:2,right:2,height:3,background:"#fdd835",borderRadius:1}}/>
-            </div>
-            <div style={{width:3,height:5,background:"#90caf9",borderRadius:"0 0 2px 2px"}}/>
-          </div>
+        <div style={{width:34,flexShrink:0,position:"relative",height:totalH,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:FLOAT_H,paddingBottom:HOOK_H,boxSizing:"border-box"}}>
 
           {/* Vertical fishing line with positioned shot markers */}
           <div style={{position:"relative",height:totalCm*PPC,width:"100%",display:"flex",justifyContent:"center"}}>
@@ -317,11 +309,9 @@ function RigDiagram({positions,totalCm,t,lang}){
             })}
           </div>
 
-          {/* Hook at bottom */}
+          {/* Simple hook line ending */}
           <div style={{height:HOOK_H,display:"flex",flexDirection:"column",alignItems:"center"}}>
-            <div style={{width:18,height:11,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#a0aab4,#546e7a)",border:"2px solid #78909c",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🔗</div>
-            <div style={{width:2,height:8,background:"#546e7a"}}/>
-            <div style={{fontSize:18,lineHeight:1}}>🪝</div>
+            <div style={{width:2,height:HOOK_H,background:"linear-gradient(180deg,#546e7a,#37474f)",borderRadius:"0 0 2px 2px"}}/>
           </div>
         </div>
 
