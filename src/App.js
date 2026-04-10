@@ -108,13 +108,15 @@ function buildPositions(items,spacingRows,torpedoes){
       continue;
     }
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
+    const bulkBefore=isBulk?(parseFloat(row.spacingBefore)||0):0;
     const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
+    // Add "before" gap before bulk group
+    if(isBulk&&bulkBefore>0)cursor+=bulkBefore;
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast)break;
       const idx=Math.min(si,items.length-1);
-      const isLastOfBulk=isBulk&&(x===rc-1);
       if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
-      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:isLastOfBulk?bulkGap:0,rowType:row.type||"shot"});si++;
+      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:0,rowType:row.type||"shot"});si++;
     }
     // After bulk group, move cursor forward by bulkGap
     if(isBulk&&bulkGap>0&&pos.length>0)cursor+=bulkGap;
@@ -560,6 +562,7 @@ export default function App(){
                   <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,background:GC[idx%GC.length],display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{idx+1}</div>
                   <div style={{fontSize:10,color:ac,fontWeight:700,minWidth:50}}>{tl}</div>
                   {!isT&&<div style={{flex:1}}><div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{t.colPcs}</div><input type="number" min={1} max={30} value={row.count} onChange={e=>updateSpacingRow(row.id,"count",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>}
+                  {isB&&<div style={{flex:1}}><div style={{fontSize:9,color:"#ef9a9a",textTransform:"uppercase",marginBottom:3}}>ΚΕΝΟ ΠΡΙΝ (cm)</div><input type="number" min={0} step={0.5} value={row.spacingBefore||"0"} onChange={e=>updateSpacingRow(row.id,"spacingBefore",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:"#1a0808",border:"1.5px solid #e5393550",borderRadius:7,color:"#ef9a9a",fontSize:14,fontWeight:700,outline:"none"}}/></div>}
                   <div style={{flex:1}}><div style={{fontSize:9,color:isB?"#69f0ae":"#546e7a",textTransform:"uppercase",marginBottom:3}}>{isB?"ΚΕΝΟ ΜΕΤΑ (cm)":t.colGap}</div><input type="number" min={0} step={0.5} value={row.spacing} onChange={e=>updateSpacingRow(row.id,"spacing",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:isB?"#0a1a0a":"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:isB?"#69f0ae":"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>
                   <button onClick={()=>removeSpacingRow(row.id)} style={{flexShrink:0,width:26,height:26,borderRadius:7,background:"#c6282818",color:"#ef5350",border:"1px solid #c6282830",fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                 </div>
