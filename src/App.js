@@ -106,6 +106,7 @@ function buildPositions(items,spacingRows,torpedoes){
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
     const bulkBefore=isBulk?(parseFloat(row.spacingBefore)||0):0;
     const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
+    if(isBulk&&bulkBefore>0)cursor+=bulkBefore;
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
