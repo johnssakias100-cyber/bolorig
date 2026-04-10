@@ -116,7 +116,7 @@ function buildPositions(items,spacingRows,torpedoes){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
       if(!isBulk){
-        if(pos.length>0||cursor>0){
+        if(pos.length>0){
           if(!skipNextSpacing)cursor+=cm;
           skipNextSpacing=false;
         }
