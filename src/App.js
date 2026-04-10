@@ -221,6 +221,11 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
+          {/* Hook 0 label — bottom of ruler */}
+          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+6,left:0}}>
+            <span style={{fontSize:9,fontWeight:800,color:"#ffd740"}}>🔗0</span>
+          </div>
+
           {/* Bulk AFTER gap label — left side */}
           {positions.map((pos,i)=>{
             if(pos.rowType!=="bulk"||!pos.bulkAfter||pos.bulkAfter<=0)return null;
@@ -321,11 +326,6 @@ function RigDiagram({positions,totalCm,t,lang}){
           <div style={{position:"absolute",top:6,left:8}}>
             <div style={{fontSize:10,color:"#90caf9",fontWeight:700}}>{t.floatTop}</div>
             <div style={{fontSize:9,color:"#546e7a"}}>{totalCm}cm</div>
-          </div>
-
-          {/* Hook label */}
-          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+6,left:8}}>
-            <span style={{fontSize:10,fontWeight:800,color:"#ffd740"}}>🔗 0 cm</span>
           </div>
 
           {/* Shot labels - bulk grouped, show only first */}
