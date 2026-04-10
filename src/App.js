@@ -107,24 +107,16 @@ function buildPositions(items,spacingRows,torpedoes){
       pos.push({shot:{grams,code,isTorpedo:true,id:row.id},distFromHook:cursor,spacingCm:cm,rowType:"torpedo"});
       continue;
     }
-    const rc=parseInt(row.count)||1,isBulk=row.type==="bulk"||cm===0;
-    // Find next non-bulk row spacing for the gap after bulk group
-    let nextSpacing=cm;
-    if(isBulk){
-      for(let ni=ri+1;ni<spacingRows.length;ni++){
-        const nr=spacingRows[ni];
-        if(nr.type!=="bulk"&&parseFloat(nr.spacing)>0){nextSpacing=parseFloat(nr.spacing)||10;break;}
-      }
-    }
+    const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
+    const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast)break;
       const idx=Math.min(si,items.length-1);
-      // For bulk: no spacing within bulk, but add nextSpacing after the last item of bulk group
-      const isLastInBulk=isBulk&&(x===rc-1);
-      const spacing=isBulk?(isLastInBulk&&(pos.length>0)?nextSpacing:0):cm;
-      if(pos.length>0||cursor>0)cursor+=isBulk?(isLastInBulk&&pos.length>0?nextSpacing:0):cm;
+      if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
       pos.push({shot:items[idx],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;
     }
+    // After bulk group, add the gap
+    if(isBulk&&bulkGap>0&&pos.length>0)cursor+=bulkGap;
     if(isLast&&si<items.length){while(si<items.length){cursor+=isBulk?0:cm;pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;}}
   }
   return pos;
@@ -316,8 +308,8 @@ export default function App(){
   // "κοντά στη θηλιά" = start of array (index 0 = near hook)
   const addSpacingRow=(pos="end",rt="shot")=>{
     const r={id:Date.now(),count:"1",spacing:"10",type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr};
-    if(pos==="end")setSpacingRows(p=>[r,...p]);   // near loop = prepend (bottom of rig)
-    else setSpacingRows(p=>[...p,r]);             // near float = append (top of rig, shown at top)
+    if(pos==="end")setSpacingRows(p=>[...p,r]);   // near loop = append (shown at bottom)
+    else setSpacingRows(p=>[r,...p]);             // near float = prepend (shown at top)
   };
   const removeSpacingRow=id=>setSpacingRows(p=>p.filter(r=>r.id!==id));
   const updateSpacingRow=(id,field,val)=>setSpacingRows(p=>p.map(r=>r.id===id?{...r,[field]:val}:r));
@@ -425,7 +417,10 @@ export default function App(){
 
         {/* SPACING TAB */}
         {activeTab==="spacing"&&<Panel>
-          <div style={{fontSize:12,color:"#90caf9",marginBottom:10,lineHeight:1.6}}>{t.spacingTitle} {t.spacingRepeat}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:12,color:"#90caf9",lineHeight:1.6}}>{t.spacingTitle} {t.spacingRepeat}</div>
+            <button onClick={()=>setSpacingRows([])} style={{background:"#37474f",color:"#90caf9",border:"1px solid #546e7a",borderRadius:8,padding:"6px 12px",fontWeight:700,fontSize:12,cursor:"pointer",flexShrink:0,marginLeft:8}}>↺ Reset</button>
+          </div>
           <div style={{marginBottom:12}}>
             {/* Β FIX: nearFloat = end of array, nearLoop = start of array */}
             <div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>{t.nearFloat}</div>
@@ -452,7 +447,7 @@ export default function App(){
                   <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,background:GC[idx%GC.length],display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{idx+1}</div>
                   <div style={{fontSize:10,color:ac,fontWeight:700,minWidth:50}}>{tl}</div>
                   {!isT&&<div style={{flex:1}}><div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{t.colPcs}</div><input type="number" min={1} max={30} value={row.count} onChange={e=>updateSpacingRow(row.id,"count",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>}
-                  <div style={{flex:1}}><div style={{fontSize:9,color:isB?"#69f0ae":"#546e7a",textTransform:"uppercase",marginBottom:3}}>{isB?"BULK":t.colGap}</div><input type="number" min={0} step={0.5} value={row.spacing} onChange={e=>updateSpacingRow(row.id,"spacing",e.target.value)} onFocus={e=>e.target.select()} disabled={isB} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:isB?"#0a1a0a":"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:isB?"#69f0ae":"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>
+                  <div style={{flex:1}}><div style={{fontSize:9,color:isB?"#69f0ae":"#546e7a",textTransform:"uppercase",marginBottom:3}}>{isB?"ΚΕΝΟ ΜΕΤΑ (cm)":t.colGap}</div><input type="number" min={0} step={0.5} value={row.spacing} onChange={e=>updateSpacingRow(row.id,"spacing",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:isB?"#0a1a0a":"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:isB?"#69f0ae":"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>
                   <button onClick={()=>removeSpacingRow(row.id)} style={{flexShrink:0,width:26,height:26,borderRadius:7,background:"#c6282818",color:"#ef5350",border:"1px solid #c6282830",fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                 </div>
 
