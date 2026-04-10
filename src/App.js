@@ -172,7 +172,7 @@ function RigDiagram({positions,totalCm,t,lang}){
           <div style={{width:4,height:8,background:"#90caf9",borderRadius:"0 0 3px 3px"}}/>
           {segs.length>0&&<Line h={segs[0].lh}/>}
           {segs.map((seg,i)=>{
-            const{lh,isBulk,isTorp,bs,col}=seg;
+            const{lh:_lh,isBulk:_isBulk,isTorp,bs,col}=seg;
             const isLast=i===segs.length-1,nx=segs[i+1];
             return(
               <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
