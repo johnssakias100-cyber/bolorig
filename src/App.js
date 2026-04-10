@@ -108,10 +108,21 @@ function buildPositions(items,spacingRows,torpedoes){
       continue;
     }
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk"||cm===0;
+    // Find next non-bulk row spacing for the gap after bulk group
+    let nextSpacing=cm;
+    if(isBulk){
+      for(let ni=ri+1;ni<spacingRows.length;ni++){
+        const nr=spacingRows[ni];
+        if(nr.type!=="bulk"&&parseFloat(nr.spacing)>0){nextSpacing=parseFloat(nr.spacing)||10;break;}
+      }
+    }
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast)break;
       const idx=Math.min(si,items.length-1);
-      if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
+      // For bulk: no spacing within bulk, but add nextSpacing after the last item of bulk group
+      const isLastInBulk=isBulk&&(x===rc-1);
+      const spacing=isBulk?(isLastInBulk&&(pos.length>0)?nextSpacing:0):cm;
+      if(pos.length>0||cursor>0)cursor+=isBulk?(isLastInBulk&&pos.length>0?nextSpacing:0):cm;
       pos.push({shot:items[idx],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;
     }
     if(isLast&&si<items.length){while(si<items.length){cursor+=isBulk?0:cm;pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;}}
@@ -305,8 +316,8 @@ export default function App(){
   // "κοντά στη θηλιά" = start of array (index 0 = near hook)
   const addSpacingRow=(pos="end",rt="shot")=>{
     const r={id:Date.now(),count:"1",spacing:"10",type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr};
-    if(pos==="end")setSpacingRows(p=>[r,...p]);   // near loop = start of array
-    else setSpacingRows(p=>[...p,r]);              // near float = end of array
+    if(pos==="end")setSpacingRows(p=>[r,...p]);   // near loop = prepend (bottom of rig)
+    else setSpacingRows(p=>[...p,r]);             // near float = append (top of rig, shown at top)
   };
   const removeSpacingRow=id=>setSpacingRows(p=>p.filter(r=>r.id!==id));
   const updateSpacingRow=(id,field,val)=>setSpacingRows(p=>p.map(r=>r.id===id?{...r,[field]:val}:r));
@@ -356,6 +367,9 @@ export default function App(){
 
         {/* CALC TAB */}
         {activeTab==="calc"&&<div>
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:6}}>
+            <button onClick={()=>{setCountStr("8");setTargetStr("2.00");setGroupSize("fixed");setDirection("asc");setResult(null);}} style={{background:"#37474f",color:"#90caf9",border:"1px solid #546e7a",borderRadius:8,padding:"7px 14px",fontWeight:700,fontSize:12,cursor:"pointer"}}>↺ Reset</button>
+          </div>
           <Panel>
             <Field label={t.labelCount} mb={12}>
               <div style={{position:"relative"}}><input type="number" min={1} max={40} value={countStr} onChange={e=>setCountStr(e.target.value)} onFocus={e=>e.target.select()} placeholder="8" style={inp()}/>{countStr!==""&&<button onClick={()=>setCountStr("")} style={clrBtn}>✕</button>}</div>
