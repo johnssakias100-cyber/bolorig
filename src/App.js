@@ -112,10 +112,11 @@ function buildPositions(items,spacingRows,torpedoes){
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast)break;
       const idx=Math.min(si,items.length-1);
+      const isLastOfBulk=isBulk&&(x===rc-1);
       if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
-      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;
+      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:isLastOfBulk?bulkGap:0,rowType:row.type||"shot"});si++;
     }
-    // After bulk group, add the gap
+    // After bulk group, move cursor forward by bulkGap
     if(isBulk&&bulkGap>0&&pos.length>0)cursor+=bulkGap;
     if(isLast&&si<items.length){while(si<items.length){cursor+=isBulk?0:cm;pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot"});si++;}}
   }
@@ -144,8 +145,8 @@ function RigDiagram({positions,totalCm,t,lang}){
   const fromTop=[...positions].reverse();
   const PPC=5,MIN=10;
   const segs=fromTop.map(pos=>{
-    const isBulk=pos.spacingCm===0&&!pos.shot.isTorpedo,isTorp=pos.shot.isTorpedo===true;
-    const lh=isBulk?MIN:Math.max(MIN,pos.spacingCm*PPC);
+    const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
+    const lh=isBulk&&pos.spacingCm===0?MIN:Math.max(MIN,pos.spacingCm*PPC);
     const bs=isTorp?null:Math.round(12+Math.min(10,pos.shot.grams*8));
     const col=isTorp?"#42a5f5":isBulk?"#e53935":"#ffa000";
     return{pos,lh,isBulk,isTorp,bs,col};
