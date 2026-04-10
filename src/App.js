@@ -288,9 +288,10 @@ function RigDiagram({positions,totalCm,t,lang}){
                 let groupEnd=i;
                 while(groupEnd<positions.length-1&&positions[groupEnd+1].rowType==="bulk")groupEnd++;
                 const count=groupEnd-groupStart+1;
+                const stackH=count*bs-(count-1)*2;
                 return(
                   <div key={i} style={{position:"absolute",top:topPx,left:"50%",
-                    transform:"translate(-50%,-50%)",
+                    transform:`translate(-50%,-${stackH/2}px)`,
                     zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
                     {Array.from({length:count}).map((_,k)=>(
                       <div key={k} style={{width:bs,height:bs,borderRadius:"50%",flexShrink:0,
