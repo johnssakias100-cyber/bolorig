@@ -290,11 +290,11 @@ function RigDiagram({positions,totalCm,t,lang}){
                 const count=groupEnd-groupStart+1;
                 const fixedH=5*PPC;
                 const dotSize=Math.min(bs,Math.round(fixedH/count)+2);
-                // At 0 (hook): grow upward only. Otherwise center.
+                // At 0 (hook): grow downward. Otherwise center.
                 const isAtZero=pos.distFromHook===0;
                 return(
                   <div key={i} style={{position:"absolute",top:topPx,left:"50%",
-                    transform:isAtZero?`translate(-50%,-${fixedH}px)`:`translate(-50%,-${fixedH/2}px)`,
+                    transform:isAtZero?`translate(-50%,0)`:`translate(-50%,-${fixedH/2}px)`,
                     zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",
                     height:fixedH}}>
                     {Array.from({length:count}).map((_,k)=>(
@@ -440,8 +440,9 @@ export default function App(){
   const removeTorpedo=id=>setTorpedoes(p=>p.filter(t2=>t2.id!==id));
 
   const addSpacingRow=(rt="shot")=>{
-    const r={id:Date.now(),count:"1",spacing:"10",type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr};
-    setSpacingRows(p=>[...p,r]); // always append = toward float
+    const defaultSpacing=rt==="bulk"?"0":"10";
+    const r={id:Date.now(),count:"1",spacing:defaultSpacing,type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr};
+    setSpacingRows(p=>[...p,r]);
   };
   const removeSpacingRow=id=>setSpacingRows(p=>p.filter(r=>r.id!==id));
   const updateSpacingRow=(id,field,val)=>setSpacingRows(p=>p.map(r=>r.id===id?{...r,[field]:val}:r));
