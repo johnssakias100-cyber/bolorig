@@ -339,28 +339,24 @@ function RigDiagram({positions,totalCm,t,lang}){
           {positions.map((pos,i)=>{
             const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
             const col=isTorp?TORP_COL:isBulk?BULK_COL:SHOT_COL;
-            const topPx=FLOAT_H+(totalCm-pos.distFromHook)*PPC;
+            // For bulk: label at center of 5cm visual span
+            const topPx=isBulk
+              ? FLOAT_H+(totalCm-(pos.distFromHook-2.5))*PPC
+              : FLOAT_H+(totalCm-pos.distFromHook)*PPC;
 
-            // Bulk: only label on first of consecutive group
             if(isBulk&&i>0&&positions[i-1].rowType==="bulk")return null;
             let bulkCount=0;
             if(isBulk){for(let j=i;j<positions.length&&positions[j].rowType==="bulk";j++)bulkCount++;}
-            const bs2=Math.round(9+Math.min(7,pos.shot.grams*7));
-            const stackH2=isBulk?bulkCount*(bs2-2):0;
-            const labelTop=topPx;
 
             return(
-              <div key={`lbl${i}`} style={{position:"absolute",top:labelTop,left:8,transform:"translateY(-50%)",lineHeight:1.3}}>
+              <div key={`lbl${i}`} style={{position:"absolute",top:topPx,left:8,transform:"translateY(-50%)",lineHeight:1.3}}>
                 <span style={{fontSize:10,fontWeight:800,color:col,whiteSpace:"nowrap"}}>
                   {isTorp?"🔵 ":""}{isBulk?`${bulkCount}× ${pos.shot.code}`:pos.shot.code}
                   {isBulk&&<span style={{fontSize:8,marginLeft:3,color:BULK_COL,background:"#e5393520",borderRadius:2,padding:"1px 3px"}}>BULK</span>}
+                  <span style={{fontSize:9,color:isBulk?BULK_COL:"#78909c",marginLeft:4}}>
+                    {isBulk?`${pos.shot.grams.toFixed(3)}g/τεμ`:pos.shot.grams.toFixed(isTorp?2:3)+"g"}
+                  </span>
                 </span>
-                <div style={{fontSize:9,color:"#78909c",whiteSpace:"nowrap"}}>
-                  {isBulk
-                    ?<span style={{color:BULK_COL}}>{pos.shot.grams.toFixed(3)}g/τεμ</span>
-                    :<span>{pos.shot.grams.toFixed(isTorp?2:3)}g</span>
-                  }
-                </div>
               </div>
             );
           })}
