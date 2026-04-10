@@ -176,7 +176,7 @@ function RigDiagram({positions,totalCm,t,lang}){
       <div style={{display:"flex",gap:0}}>
 
         {/* RULER col */}
-        <div style={{width:30,flexShrink:0,position:"relative",height:totalH}}>
+        <div style={{width:44,flexShrink:0,position:"relative",height:totalH}}>
           {ticks.map(c=>{
             const y=FLOAT_H+(totalCm-c)*PPC;
             const isZero=c===0;
@@ -184,6 +184,58 @@ function RigDiagram({positions,totalCm,t,lang}){
               <div key={c} style={{position:"absolute",top:y,right:0,display:"flex",alignItems:"center",gap:2,transform:"translateY(-50%)"}}>
                 <span style={{fontSize:8,color:isZero?"#ffd740":"#546e7a",fontWeight:700,lineHeight:1,whiteSpace:"nowrap"}}>{c}</span>
                 <div style={{width:isZero?6:4,height:1,background:isZero?"#ffd740":"#37474f"}}/>
+              </div>
+            );
+          })}
+
+          {/* All gap labels in ruler col — spacing between shots */}
+          {positions.map((pos,i)=>{
+            if(i===0)return null;
+            const prev=positions[i-1];
+            if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
+            const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
+            if(gap<=0)return null;
+            const midCm=(pos.distFromHook+prev.distFromHook)/2;
+            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
+            return(
+              <div key={`sp${i}`} style={{position:"absolute",top:midPx,right:8,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 4px"}}>
+                  {gap}
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Bulk BEFORE gap label in ruler col */}
+          {positions.map((pos,i)=>{
+            if(pos.rowType!=="bulk"||!pos.bulkBefore||pos.bulkBefore<=0)return null;
+            if(i>0&&positions[i-1].rowType==="bulk")return null;
+            const prev=positions[i-1];
+            if(!prev)return null;
+            const midCm=(pos.distFromHook+prev.distFromHook)/2;
+            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
+            return(
+              <div key={`bb${i}`} style={{position:"absolute",top:midPx,right:8,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 4px"}}>
+                  {pos.bulkBefore}
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Bulk AFTER gap label in ruler col */}
+          {positions.map((pos,i)=>{
+            if(pos.rowType!=="bulk"||!pos.bulkAfter||pos.bulkAfter<=0)return null;
+            if(i<positions.length-1&&positions[i+1].rowType==="bulk")return null;
+            const next=positions[i+1];
+            if(!next)return null;
+            const midCm=(pos.distFromHook+next.distFromHook)/2;
+            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
+            return(
+              <div key={`ba${i}`} style={{position:"absolute",top:midPx,right:8,transform:"translateY(-50%)"}}>
+                <span style={{fontSize:9,color:"#ffd740",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 4px"}}>
+                  {pos.bulkAfter}
+                </span>
               </div>
             );
           })}
@@ -310,59 +362,6 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Spacing labels: between every two consecutive non-bulk shots */}
-          {positions.map((pos,i)=>{
-            if(i===0)return null;
-            const prev=positions[i-1];
-            if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
-            const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
-            if(gap<=0)return null;
-            const midCm=(pos.distFromHook+prev.distFromHook)/2;
-            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
-            return(
-              <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%) translateY(12px)"}}>
-                <span style={{fontSize:9,color:"#ffa000",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #ffa00030"}}>
-                  {gap}cm
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Bulk BEFORE label: between prev shot and bulk group */}
-          {positions.map((pos,i)=>{
-            if(pos.rowType!=="bulk"||!pos.bulkBefore||pos.bulkBefore<=0)return null;
-            if(i>0&&positions[i-1].rowType==="bulk")return null;
-            const prev=positions[i-1];
-            if(!prev)return null;
-            const midCm=(pos.distFromHook+prev.distFromHook)/2;
-            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
-            return(
-              <div key={`bb${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:BULK_COL,fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:`1px solid ${BULK_COL}30`}}>
-                  {pos.bulkBefore}cm
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Bulk AFTER label: between bulk group and next shot */}
-          {positions.map((pos,i)=>{
-            if(pos.rowType!=="bulk"||!pos.bulkAfter||pos.bulkAfter<=0)return null;
-            if(i<positions.length-1&&positions[i+1].rowType==="bulk")return null;
-            const next=positions[i+1];
-            if(!next)return null;
-            // bulk.distFromHook is LARGER than next.distFromHook (bulk is higher on line)
-            // midpoint between them
-            const midCm=(pos.distFromHook+next.distFromHook)/2;
-            const midPx=FLOAT_H+(totalCm-midCm)*PPC;
-            return(
-              <div key={`ba${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
-                <span style={{fontSize:9,color:"#69f0ae",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #69f0ae30"}}>
-                  {pos.bulkAfter}cm
-                </span>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>
