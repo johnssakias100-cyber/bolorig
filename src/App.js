@@ -204,7 +204,7 @@ function RigDiagram({positions,totalCm,t,lang}){
             {/* The line */}
             <div style={{position:"absolute",top:0,bottom:0,width:2.5,background:"linear-gradient(180deg,#546e7a,#78909c)",borderRadius:2}}/>
 
-            {/* Shot dots - bulk shown as multiple overlapping circles at same position */}
+            {/* Shot dots - bulk shown as multiple stacked circles */}
             {positions.map((pos,i)=>{
               const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
               const topPx=(totalCm-pos.distFromHook)*PPC;
@@ -222,12 +222,34 @@ function RigDiagram({positions,totalCm,t,lang}){
                 );
               }
 
-              const col=isBulk?BULK_COL:SHOT_COL;
+              if(isBulk){
+                // Find start index of this bulk group
+                let groupStart=i;
+                while(groupStart>0&&positions[groupStart-1].rowType==="bulk")groupStart--;
+                // Only render on first of group - draw all dots stacked
+                if(i!==groupStart)return null;
+                let groupEnd=i;
+                while(groupEnd<positions.length-1&&positions[groupEnd+1].rowType==="bulk")groupEnd++;
+                const count=groupEnd-groupStart+1;
+                // Stack dots vertically, each touching the next (bs px each)
+                return(
+                  <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2,
+                    display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+                    {Array.from({length:count}).map((_,k)=>(
+                      <div key={k} style={{width:bs,height:bs,borderRadius:"50%",flexShrink:0,
+                        background:`radial-gradient(circle at 35% 35%,${BULK_COL}bb,#0d1f35)`,
+                        border:`2px solid ${BULK_COL}`,boxShadow:`0 0 4px ${BULK_COL}55`,
+                        marginTop:k===0?0:-2}}/>
+                    ))}
+                  </div>
+                );
+              }
+
               return(
                 <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2,
                   width:bs,height:bs,borderRadius:"50%",
-                  background:`radial-gradient(circle at 35% 35%,${col}bb,#0d1f35)`,
-                  border:`2px solid ${col}`,boxShadow:`0 0 5px ${col}55`}}/>
+                  background:`radial-gradient(circle at 35% 35%,${SHOT_COL}bb,#0d1f35)`,
+                  border:`2px solid ${SHOT_COL}`,boxShadow:`0 0 5px ${SHOT_COL}55`}}/>
               );
             })}
           </div>
@@ -281,37 +303,37 @@ function RigDiagram({positions,totalCm,t,lang}){
             );
           })}
 
-          {/* Spacing labels: centered between two consecutive shots */}
+          {/* Spacing labels: between every two consecutive non-bulk shots, using distFromHook diff */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
-            // Skip if either is bulk or torpedo
             if(pos.rowType==="bulk"||prev.rowType==="bulk"||pos.rowType==="torpedo"||prev.rowType==="torpedo")return null;
-            if(pos.spacingCm<=0)return null;
-            // Place label at midpoint between the two shots
+            const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
+            if(gap<=0)return null;
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`sp${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
                 <span style={{fontSize:9,color:"#ffa000",fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:"1px solid #ffa00030"}}>
-                  {pos.spacingCm}cm
+                  {gap}cm
                 </span>
               </div>
             );
           })}
 
-          {/* Bulk gap label: between last bulk and next shot */}
+          {/* Bulk gap label: after bulk group */}
           {positions.map((pos,i)=>{
             if(i===0)return null;
             const prev=positions[i-1];
             if(prev.rowType!=="bulk"||pos.rowType==="bulk")return null;
-            if(prev.spacingCm<=0)return null;
+            const gap=parseFloat((pos.distFromHook-prev.distFromHook).toFixed(1));
+            if(gap<=0)return null;
             const midCm=(pos.distFromHook+prev.distFromHook)/2;
             const midPx=FLOAT_H+(totalCm-midCm)*PPC;
             return(
               <div key={`bg${i}`} style={{position:"absolute",top:midPx,left:8,transform:"translateY(-50%)"}}>
                 <span style={{fontSize:9,color:BULK_COL,fontWeight:700,background:"#071830cc",borderRadius:3,padding:"1px 5px",border:`1px solid ${BULK_COL}30`}}>
-                  {prev.spacingCm}cm
+                  {gap}cm
                 </span>
               </div>
             );
