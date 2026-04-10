@@ -92,39 +92,43 @@ function getGroups(items){const g=[];let i=0;while(i<items.length){const c=items
 
 function buildPositions(items,spacingRows,torpedoes){
   const pos=[];let cursor=0,si=0;
+  let skipNextSpacing=false;
   for(let ri=0;ri<spacingRows.length;ri++){
     const row=spacingRows[ri],isLast=ri===spacingRows.length-1,cm=parseFloat(row.spacing)||0;
     if(row.type==="torpedo"){
-      // torpedo from spacing tab: placed at its position, weight added separately
       const tp=row.torpedoMode==="list"
         ? torpedoes&&torpedoes.find(t=>t.id===row.torpedoId)
-        : null; // auto mode: placeholder
+        : null;
       const grams=row.torpedoMode==="list"
         ? (tp?tp.grams:0)
         : ((parseFloat(row.torpedoPct)||60)/100*(parseFloat(row.torpedoTarget)||2));
       const code=row.torpedoMode==="list"?(tp?tp.code:"?"):`Auto ${(parseFloat(row.torpedoPct)||60)}%`;
       if(pos.length>0||cursor>0)cursor+=cm;
+      skipNextSpacing=false;
       pos.push({shot:{grams,code,isTorpedo:true,id:row.id},distFromHook:cursor,spacingCm:cm,rowType:"torpedo"});
       continue;
     }
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
     const bulkBefore=isBulk?(parseFloat(row.spacingBefore)||0):0;
     const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
-    // Add "before" gap before bulk group
     if(isBulk&&bulkBefore>0)cursor+=bulkBefore;
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
-      if(pos.length>0||cursor>0)cursor+=isBulk?0:cm;
+      if(!isBulk){
+        if(pos.length>0||cursor>0){
+          if(!skipNextSpacing)cursor+=cm;
+          skipNextSpacing=false;
+        }
+      }
       const isFirstOfBulk=isBulk&&x===0;
       const isLastOfBulk=isBulk&&x===rc-1;
       pos.push({shot:items[idx],distFromHook:cursor,spacingCm:0,rowType:row.type||"shot",
         bulkBefore:isFirstOfBulk?bulkBefore:0,
         bulkAfter:isLastOfBulk?bulkGap:0});si++;
     }
-    // After bulk group, move cursor forward by bulkGap
-    if(isBulk&&bulkGap>0&&pos.length>0)cursor+=bulkGap;
-    if(isLast&&si<items.length){while(si<items.length){cursor+=isBulk?0:cm;pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot",bulkBefore:0,bulkAfter:0});si++;}}
+    if(isBulk&&bulkGap>0&&pos.length>0){cursor+=bulkGap;skipNextSpacing=true;}
+    if(isLast&&si<items.length){while(si<items.length){if(!isBulk){if(!skipNextSpacing)cursor+=cm;skipNextSpacing=false;}pos.push({shot:items[si],distFromHook:cursor,spacingCm:isBulk?0:cm,rowType:row.type||"shot",bulkBefore:0,bulkAfter:0});si++;}}
   }
   return pos;
 }
@@ -288,16 +292,18 @@ function RigDiagram({positions,totalCm,t,lang}){
                 let groupEnd=i;
                 while(groupEnd<positions.length-1&&positions[groupEnd+1].rowType==="bulk")groupEnd++;
                 const count=groupEnd-groupStart+1;
-                const stackH=count*bs-(count-1)*2;
+                // Fixed 5cm visual height on ruler
+                const fixedH=5*PPC;
+                const dotSize=Math.min(bs,Math.round(fixedH/count)+2);
                 return(
                   <div key={i} style={{position:"absolute",top:topPx,left:"50%",
-                    transform:`translate(-50%,-${stackH/2}px)`,
-                    zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+                    transform:`translate(-50%,-${fixedH/2}px)`,
+                    zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",
+                    height:fixedH}}>
                     {Array.from({length:count}).map((_,k)=>(
-                      <div key={k} style={{width:bs,height:bs,borderRadius:"50%",flexShrink:0,
+                      <div key={k} style={{width:dotSize,height:dotSize,borderRadius:"50%",flexShrink:0,
                         background:`radial-gradient(circle at 35% 35%,${BULK_COL}bb,#0d1f35)`,
-                        border:`2px solid ${BULK_COL}`,boxShadow:`0 0 4px ${BULK_COL}55`,
-                        marginTop:k===0?0:-2}}/>
+                        border:`2px solid ${BULK_COL}`,boxShadow:`0 0 4px ${BULK_COL}55`}}/>
                     ))}
                   </div>
                 );
