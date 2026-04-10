@@ -139,96 +139,129 @@ function TorpedoShape({grams}){
   );
 }
 
-// ── Vertical Rig Diagram ──
+// ── Vertical Rig Diagram (proportional scale) ──
 function RigDiagram({positions,totalCm,t,lang}){
   if(!positions||positions.length===0)return null;
-  const fromTop=[...positions].reverse();
-  const PPC=5,MIN=10;
-  const segs=fromTop.map(pos=>{
-    const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
-    const lh=isBulk&&pos.spacingCm===0?MIN:Math.max(MIN,pos.spacingCm*PPC);
-    const bs=isTorp?null:Math.round(12+Math.min(10,pos.shot.grams*8));
-    const col=isTorp?"#42a5f5":isBulk?"#e53935":"#ffa000";
-    return{pos,lh,isBulk,isTorp,bs,col};
-  });
-  const FH=87,LH=54;
-  const hasTorp=segs.some(s=>s.isTorp);
-  const Line=({h,c})=><div style={{width:3,height:h,background:c||"linear-gradient(180deg,#546e7a,#78909c)",borderRadius:2,flexShrink:0}}/>;
+
+  // Scale: pixels per cm. Min 4px/cm, max 8px/cm, target ~400px total height
+  const PPC=Math.min(8,Math.max(4,Math.round(400/Math.max(totalCm,10))));
+  const FLOAT_H=80; // height for float area at top
+  const HOOK_H=40;  // height for hook area at bottom
+  const totalH=FLOAT_H+totalCm*PPC+HOOK_H;
+
+  const hasTorp=positions.some(p=>p.shot.isTorpedo);
+
+  // Build ruler ticks (every 5cm or 10cm depending on scale)
+  const tickStep=totalCm<=50?5:10;
+  const ticks=[];
+  for(let c=0;c<=totalCm;c+=tickStep)ticks.push(c);
+
   return(
-    <div style={{background:"linear-gradient(180deg,#071d4a,#091830)",borderRadius:14,border:"1.5px solid #1e4d8a",padding:"14px 0 14px",marginTop:8}}>
-      <div style={{fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:8,paddingLeft:14}}>{t.diagTitle} {totalCm} {t.diagTotal}</div>
-      <div style={{display:"flex",gap:10,marginBottom:12,paddingLeft:14,flexWrap:"wrap"}}>
+    <div style={{background:"linear-gradient(180deg,#071d4a,#091830)",borderRadius:14,border:"1.5px solid #1e4d8a",padding:"14px 8px 14px",marginTop:8}}>
+      {/* Header */}
+      <div style={{fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:8,paddingLeft:6}}>{t.diagTitle} {totalCm} {t.diagTotal}</div>
+      <div style={{display:"flex",gap:10,marginBottom:10,paddingLeft:6,flexWrap:"wrap"}}>
         <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:"#e53935"}}/><span style={{fontSize:10,color:"#e57373"}}>BULK</span></div>
         <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:9,height:9,borderRadius:"50%",background:"#ffa000"}}/><span style={{fontSize:10,color:"#ffd740"}}>{lang==="el"?"Απόσταση":"Spaced"}</span></div>
         {hasTorp&&<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:14,borderRadius:"50%",background:"#1976d2",border:"1px solid #42a5f5"}}/><span style={{fontSize:10,color:"#90caf9"}}>{lang==="el"?"Τορπίλη":"Torpedo"}</span></div>}
+        <div style={{fontSize:10,color:"#546e7a",marginLeft:"auto"}}>{PPC}px/cm</div>
       </div>
-      <div style={{display:"flex",paddingLeft:14,paddingRight:8}}>
-        {/* LEFT col */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:36,flexShrink:0}}>
-          <div style={{width:3,height:10,background:"#78909c",borderRadius:2}}/>
-          <div style={{width:10,height:5,background:"#ffd740",borderRadius:2,border:"1px solid #ffa000"}}/>
-          <div style={{width:3,height:8,background:"#78909c",borderRadius:2}}/>
-          <div style={{width:4,height:16,background:"linear-gradient(180deg,#ef5350 50%,#fdd835 50%)",borderRadius:"3px 3px 0 0"}}/>
-          <div style={{width:26,height:40,background:"linear-gradient(160deg,#b0c4de,#4a7fa0,#2c5f80)",borderRadius:"50% 50% 44% 44%/58% 58% 42% 42%",border:"2px solid #90caf9",position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:11,left:2,right:2,height:6,background:"#e53935",borderRadius:1}}/>
-            <div style={{position:"absolute",top:17,left:2,right:2,height:4,background:"#fdd835",borderRadius:1}}/>
-          </div>
-          <div style={{width:4,height:8,background:"#90caf9",borderRadius:"0 0 3px 3px"}}/>
-          {segs.length>0&&<Line h={segs[0].lh}/>}
-          {segs.map((seg,i)=>{
-            const{lh:_lh,isBulk:_isBulk,isTorp,bs,col}=seg;
-            const isLast=i===segs.length-1,nx=segs[i+1];
+
+      {/* Main diagram area */}
+      <div style={{display:"flex",gap:0,position:"relative"}}>
+
+        {/* RULER col (leftmost) */}
+        <div style={{width:32,flexShrink:0,position:"relative",height:totalH}}>
+          {ticks.map(c=>{
+            const y=FLOAT_H+(totalCm-c)*PPC;
             return(
-              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                {isTorp
-                  ?<TorpedoShape grams={seg.pos.shot.grams}/>
-                  :<div style={{width:bs,height:bs,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${col}bb,#0d1f35)`,border:`2px solid ${col}`,boxShadow:`0 0 7px ${col}55`}}/>
-                }
-                <Line h={isLast?20:nx.lh} c={(!isLast&&nx.isBulk)?"#37474f":"linear-gradient(180deg,#546e7a,#78909c)"}/>
+              <div key={c} style={{position:"absolute",top:y,right:0,display:"flex",alignItems:"center",gap:2}}>
+                <span style={{fontSize:8,color:"#546e7a",fontWeight:700,lineHeight:1}}>{c}</span>
+                <div style={{width:5,height:1,background:"#37474f"}}/>
               </div>
             );
           })}
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-            <div style={{width:20,height:14,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#a0aab4,#546e7a)",border:"2px solid #78909c",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9}}>🔗</div>
-            <div style={{width:2,height:16,background:"#546e7a"}}/>
-            <div style={{fontSize:20,lineHeight:1}}>🪝</div>
+          <div style={{position:"absolute",top:FLOAT_H,right:0,display:"flex",alignItems:"center",gap:2}}>
+            <span style={{fontSize:8,color:"#ffd740",fontWeight:800,lineHeight:1}}>{totalCm}</span>
+            <div style={{width:5,height:1,background:"#ffd740"}}/>
           </div>
         </div>
-        {/* RIGHT labels */}
-        <div style={{display:"flex",flexDirection:"column",paddingLeft:10,minWidth:0,flex:1}}>
-          <div style={{height:FH,display:"flex",alignItems:"center"}}>
-            <div><div style={{fontSize:11,color:"#90caf9",fontWeight:700}}>{t.floatTop}</div><div style={{fontSize:10,color:"#546e7a"}}>{totalCm} cm {t.fromLoop}</div></div>
+
+        {/* LINE col */}
+        <div style={{width:30,flexShrink:0,position:"relative",height:totalH,display:"flex",flexDirection:"column",alignItems:"center"}}>
+          {/* Float */}
+          <div style={{height:FLOAT_H,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
+            <div style={{width:3,height:10,background:"#78909c",borderRadius:2}}/>
+            <div style={{width:10,height:5,background:"#ffd740",borderRadius:2,border:"1px solid #ffa000"}}/>
+            <div style={{width:3,height:8,background:"#78909c",borderRadius:2}}/>
+            <div style={{width:4,height:12,background:"linear-gradient(180deg,#ef5350 50%,#fdd835 50%)",borderRadius:"3px 3px 0 0"}}/>
+            <div style={{width:24,height:36,background:"linear-gradient(160deg,#b0c4de,#4a7fa0,#2c5f80)",borderRadius:"50% 50% 44% 44%/58% 58% 42% 42%",border:"2px solid #90caf9",position:"relative",overflow:"hidden",flexShrink:0}}>
+              <div style={{position:"absolute",top:10,left:2,right:2,height:5,background:"#e53935",borderRadius:1}}/>
+              <div style={{position:"absolute",top:15,left:2,right:2,height:3,background:"#fdd835",borderRadius:1}}/>
+            </div>
+            <div style={{width:3,height:6,background:"#90caf9",borderRadius:"0 0 3px 3px"}}/>
           </div>
-          {segs.length>0&&<div style={{height:segs[0].lh}}/>}
-          {segs.map((seg,i)=>{
-            const{pos,isBulk,isTorp,bs,col}=seg;
-            const isLast=i===segs.length-1,nx=segs[i+1];
-            const torpH=isTorp?Math.round(22+Math.min(18,pos.shot.grams*8)):null;
-            const sh=isTorp?torpH:bs,nl=isLast?20:nx.lh;
-            return(
-              <div key={i} style={{display:"flex",flexDirection:"column"}}>
-                <div style={{height:sh,display:"flex",alignItems:"center"}}>
-                  <div style={{minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <span style={{fontSize:11,fontWeight:800,color:col,whiteSpace:"nowrap"}}>{isTorp?"🔵 ":""}{pos.shot.code}</span>
-                      {isBulk&&<span style={{fontSize:9,color:"#e53935",fontWeight:700,background:"#e5393515",borderRadius:3,padding:"1px 4px"}}>BULK</span>}
-                    </div>
-                    <div style={{fontSize:10,color:"#78909c",whiteSpace:"nowrap"}}>
-                      {pos.shot.grams.toFixed(isTorp?2:3)} {t.grUnit}{" · "}<span style={{color:"#ffa000",fontWeight:700}}>{pos.distFromHook.toFixed(1)} cm</span>
-                    </div>
-                    {!isBulk&&pos.spacingCm>0&&<div style={{fontSize:9,color:"#546e7a"}}>↕ {pos.spacingCm} cm</div>}
-                  </div>
+
+          {/* Vertical line from totalCm down to 0 */}
+          <div style={{position:"relative",height:totalCm*PPC,width:"100%",display:"flex",justifyContent:"center"}}>
+            <div style={{position:"absolute",top:0,bottom:0,width:3,background:"linear-gradient(180deg,#546e7a,#78909c)",borderRadius:2}}/>
+            {/* Shot markers */}
+            {positions.map((pos,i)=>{
+              const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
+              const col=isTorp?"#42a5f5":isBulk?"#e53935":GC[i%GC.length];
+              const bs=isTorp?null:Math.round(10+Math.min(8,pos.shot.grams*7));
+              // distFromHook=0 → bottom, distFromHook=totalCm → top
+              const topPx=(totalCm-pos.distFromHook)*PPC;
+              return(
+                <div key={i} style={{position:"absolute",top:topPx,left:"50%",transform:"translate(-50%,-50%)",zIndex:2}}>
+                  {isTorp
+                    ?<div style={{width:Math.round(8+Math.min(6,pos.shot.grams*4)),height:Math.round(16+Math.min(14,pos.shot.grams*7)),background:"linear-gradient(160deg,#90caf9 0%,#1976d2 60%,#0d47a1 100%)",borderRadius:"50% 50% 50% 50% / 38% 38% 62% 62%",border:"1.5px solid #42a5f5",flexShrink:0}}/>
+                    :<div style={{width:bs,height:bs,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${col}bb,#0d1f35)`,border:`2px solid ${col}`,boxShadow:`0 0 6px ${col}55`}}/>
+                  }
                 </div>
-                <div style={{height:nl}}/>
+              );
+            })}
+          </div>
+
+          {/* Hook */}
+          <div style={{height:HOOK_H,display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <div style={{width:20,height:12,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#a0aab4,#546e7a)",border:"2px solid #78909c",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🔗</div>
+            <div style={{width:2,height:10,background:"#546e7a"}}/>
+            <div style={{fontSize:18,lineHeight:1}}>🪝</div>
+          </div>
+        </div>
+
+        {/* LABELS col */}
+        <div style={{flex:1,position:"relative",height:totalH,minWidth:0}}>
+          {/* Float label */}
+          <div style={{position:"absolute",top:FLOAT_H-24,left:8}}>
+            <div style={{fontSize:10,color:"#90caf9",fontWeight:700}}>{t.floatTop}</div>
+            <div style={{fontSize:9,color:"#546e7a"}}>{totalCm} cm {t.fromLoop}</div>
+          </div>
+          {/* Hook label */}
+          <div style={{position:"absolute",top:FLOAT_H+totalCm*PPC+4,left:8}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#ffa00018",border:"1px solid #ffa00050",borderRadius:5,padding:"2px 6px"}}>
+              <span style={{fontSize:10,fontWeight:800,color:"#ffd740"}}>🔗 0 cm</span>
+            </div>
+          </div>
+          {/* Shot labels */}
+          {positions.map((pos,i)=>{
+            const isBulk=pos.rowType==="bulk",isTorp=pos.shot.isTorpedo===true;
+            const col=isTorp?"#42a5f5":isBulk?"#e53935":GC[i%GC.length];
+            const topPx=FLOAT_H+(totalCm-pos.distFromHook)*PPC;
+            return(
+              <div key={i} style={{position:"absolute",top:topPx,left:8,transform:"translateY(-50%)",lineHeight:1.2}}>
+                <div style={{display:"flex",alignItems:"center",gap:3}}>
+                  <span style={{fontSize:10,fontWeight:800,color:col,whiteSpace:"nowrap"}}>{isTorp?"🔵 ":""}{pos.shot.code}</span>
+                  {isBulk&&<span style={{fontSize:8,color:"#e53935",fontWeight:700,background:"#e5393515",borderRadius:2,padding:"1px 3px"}}>BULK</span>}
+                </div>
+                <div style={{fontSize:9,color:"#78909c",whiteSpace:"nowrap"}}>
+                  {pos.shot.grams.toFixed(isTorp?2:3)}g · <span style={{color:"#ffd740",fontWeight:700}}>{pos.distFromHook.toFixed(1)}cm</span>
+                  {pos.spacingCm>0&&<span style={{color:"#546e7a"}}> ↕{pos.spacingCm}cm</span>}
+                </div>
               </div>
             );
           })}
-          <div style={{height:LH,display:"flex",alignItems:"flex-start",paddingTop:2}}>
-            <div style={{display:"inline-flex",alignItems:"center",gap:5,background:"#ffa00018",border:"1px solid #ffa00050",borderRadius:6,padding:"3px 8px"}}>
-              <span style={{fontSize:11,fontWeight:800,color:"#ffd740"}}>{t.loopLabel}</span>
-              <span style={{fontSize:9,color:"#78909c"}}>{t.loopRef}</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
