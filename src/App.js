@@ -111,7 +111,7 @@ function buildPositions(items,spacingRows,torpedoes){
     const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
     const bulkBefore=isBulk?(parseFloat(row.spacingBefore)||0):0;
     const bulkGap=isBulk?(parseFloat(row.spacing)||0):0;
-    if(isBulk&&bulkBefore>0)cursor+=bulkBefore;
+    // bulkBefore is purely visual label — spacing already handled by preceding shot rows
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
@@ -454,7 +454,7 @@ export default function App(){
 
   const orderedGroups=result?getGroups(result.items.filter(x=>!x.isTorpedo)):[];
   const positions=result?buildPositions([...result.items.filter(x=>!x.isTorpedo)].reverse(),spacingRows,torpedoes):[];
-  const totalLineCm=positions.length>0?positions[positions.length-1].distFromHook:0;
+  const totalLineCm=positions.length>0?positions[positions.length-1].distFromHook+10:0;
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#060f1e,#0b1e3d,#0d2550)",fontFamily:"'Trebuchet MS',sans-serif",color:"#e8f4ff",paddingBottom:48}}>
