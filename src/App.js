@@ -111,19 +111,21 @@ function buildPositions(items,spacingRows,torpedoes){
       continue;
     }
     const isBulk=row.type==="bulk";
-    // Auto count = all remaining items; manual = specified count
-    const rc=row.countMode==="manual"?(parseInt(row.count)||1):(isLast?items.length-si:parseInt(row.count)||1);
+    const isManual=row.countMode==="manual"&&row.manualShotId;
+    // Manual: use specified shot and count; Auto: use items from algorithm
+    const rc=isManual?(parseInt(row.manualCount)||1):(isLast?items.length-si:parseInt(row.count)||1);
     for(let x=0;x<rc;x++){
-      if(si>=items.length&&!isLast&&!isBulk)break;
-      const idx=Math.min(si,items.length-1);
-      const isFirstOfBulk=isBulk&&x===0;
+      if(!isManual&&si>=items.length&&!isLast&&!isBulk)break;
+      const shotItem=isManual
+        ?{...items.find(it=>String(it.id)===String(row.manualShotId))||items[0]}
+        :items[Math.min(si,items.length-1)];
       const isLastOfBulk=isBulk&&x===rc-1;
-      pos.push({shot:items[idx],distFromHook:cursor,spacingCm:cm,rowType:row.type||"shot",
+      pos.push({shot:shotItem,distFromHook:cursor,spacingCm:cm,rowType:row.type||"shot",
         bulkBefore:0,
         bulkAfter:isLastOfBulk?cm:0});
-      si++;
+      if(!isManual)si++;
     }
-    if(isLast&&si<items.length){
+    if(!isManual&&isLast&&si<items.length){
       while(si<items.length){
         cursor+=cm;
         pos.push({shot:items[si],distFromHook:cursor,spacingCm:cm,rowType:"shot",bulkBefore:0,bulkAfter:0});
@@ -453,8 +455,8 @@ export default function App(){
 
   const addSpacingRow=(rt="shot")=>{
     const defaultSpacing=rt==="bulk"?"0":"10";
-    const r={id:Date.now(),count:"1",spacing:defaultSpacing,type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr};
-    setSpacingRows(p=>[...p,r]);
+    const r={id:Date.now(),count:"1",spacing:defaultSpacing,type:rt,torpedoMode:"auto",torpedoPct:"60",torpedoId:"",torpedoTarget:targetStr,countMode:"auto",manualShotId:"",manualCount:"1"};
+    setSpacingRows(p=>[r,...p]); // prepend = εμφανίζεται πάνω
   };
   const removeSpacingRow=id=>setSpacingRows(p=>p.filter(r=>r.id!==id));
   const updateSpacingRow=(id,field,val)=>setSpacingRows(p=>p.map(r=>r.id===id?{...r,[field]:val}:r));
@@ -592,20 +594,31 @@ export default function App(){
                   <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,background:GC[idx%GC.length],display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{idx+1}</div>
                   <div style={{fontSize:10,color:ac,fontWeight:700,minWidth:50}}>{tl}</div>
                   {/* Count: auto/manual for shots and bulk */}
-                  {!isT&&<div style={{flex:1}}>
+                  {!isT&&<div style={{flex:2}}>
                     <div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{lang==="el"?"ΤΕΜΑΧΙΑ":"COUNT"}</div>
-                    <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                    <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
                       <button onClick={()=>updateSpacingRow(row.id,"countMode",row.countMode==="manual"?"auto":"manual")}
-                        style={{padding:"4px 8px",background:row.countMode==="manual"?"#1565c080":"#2e7d3280",color:"#fff",
+                        style={{padding:"5px 8px",background:row.countMode==="manual"?"#1565c080":"#2e7d3280",color:"#fff",
                           border:row.countMode==="manual"?"1.5px solid #42a5f5":"1.5px solid #69f0ae",
-                          borderRadius:6,fontWeight:700,fontSize:10,cursor:"pointer",whiteSpace:"nowrap"}}>
+                          borderRadius:6,fontWeight:700,fontSize:10,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
                         {row.countMode==="manual"?(lang==="el"?"✋ Χειρ.":"✋ Man."):(lang==="el"?"⚡ Αυτ.":"⚡ Auto")}
                       </button>
-                      {row.countMode==="manual"&&<input type="number" min={1} max={30} value={row.count}
-                        onChange={e=>updateSpacingRow(row.id,"count",e.target.value)}
-                        onFocus={e=>e.target.select()}
-                        style={{width:52,boxSizing:"border-box",padding:"4px 6px",background:"#071830",
-                          border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/>}
+                      {row.countMode==="manual"&&<>
+                        {/* Dropdown βαριδιών */}
+                        <select value={row.manualShotId||""} onChange={e=>updateSpacingRow(row.id,"manualShotId",e.target.value)}
+                          style={{flex:1,minWidth:80,boxSizing:"border-box",padding:"5px 6px",background:"#071830",
+                            border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:12,fontWeight:700,outline:"none"}}>
+                          <option value="">{lang==="el"?"-- Βαρίδι --":"-- Shot --"}</option>
+                          {[...shots].sort((a,b)=>b.grams-a.grams).map(s=><option key={s.id} value={s.id}>{s.code} ({s.grams.toFixed(3)}g)</option>)}
+                        </select>
+                        {/* Τεμάχια */}
+                        <input type="number" min={1} max={30} value={row.manualCount||"1"}
+                          onChange={e=>updateSpacingRow(row.id,"manualCount",e.target.value)}
+                          onFocus={e=>e.target.select()}
+                          style={{width:46,boxSizing:"border-box",padding:"5px 6px",background:"#071830",
+                            border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:13,fontWeight:700,outline:"none"}}/>
+                        <span style={{fontSize:9,color:"#546e7a"}}>{lang==="el"?"τεμ.":"pcs"}</span>
+                      </>}
                       {row.countMode!=="manual"&&<span style={{fontSize:11,color:"#69f0ae",fontWeight:700}}>{lang==="el"?"(από υπολ.)":"(from calc)"}</span>}
                     </div>
                   </div>}
