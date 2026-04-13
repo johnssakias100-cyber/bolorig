@@ -1,4 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+
+// localStorage helpers
+const lsGet=(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 
 const T = {
   el: {
@@ -106,7 +110,9 @@ function buildPositions(items,spacingRows,torpedoes){
       pos.push({shot:{grams,code,isTorpedo:true,id:row.id},distFromHook:cursor,spacingCm:cm,rowType:"torpedo"});
       continue;
     }
-    const rc=parseInt(row.count)||1,isBulk=row.type==="bulk";
+    const isBulk=row.type==="bulk";
+    // Auto count = all remaining items; manual = specified count
+    const rc=row.countMode==="manual"?(parseInt(row.count)||1):(isLast?items.length-si:parseInt(row.count)||1);
     for(let x=0;x<rc;x++){
       if(si>=items.length&&!isLast&&!isBulk)break;
       const idx=Math.min(si,items.length-1);
@@ -372,28 +378,35 @@ function Panel({children}){return<div style={{background:"linear-gradient(135deg
 function Field({label,children,mb=16}){return<div style={{marginBottom:mb}}><label style={{display:"block",fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>{label}</label>{children}</div>;}
 
 export default function App(){
-  const [lang,setLang]=useState("el");
+  const [lang,setLang]=useState(()=>lsGet("bolo_lang","el"));
   const t=T[lang];
-  const [shots,setShots]=useState(DEFAULT_SHOTS);
+  const [shots,setShots]=useState(()=>lsGet("bolo_shots",DEFAULT_SHOTS));
   const [countStr,setCountStr]=useState("8");
   const [targetStr,setTargetStr]=useState("2.00");
   const [groupSize,setGroupSize]=useState("fixed");
   const [direction,setDirection]=useState("asc");
   const [result,setResult]=useState(null);
   const [activeTab,setActiveTab]=useState("calc");
-  const [spacingRows,setSpacingRows]=useState([]);
+  const [spacingRows,setSpacingRows]=useState(()=>lsGet("bolo_spacingRows",[]));
   const [showAddShot,setShowAddShot]=useState(false);
   const [newCode,setNewCode]=useState("");
   const [newGrams,setNewGrams]=useState("");
-  const [torpedoes,setTorpedoes]=useState(DEFAULT_TORPEDOES);
+  const [torpedoes,setTorpedoes]=useState(()=>lsGet("bolo_torpedoes",DEFAULT_TORPEDOES));
   const [showAddTorp,setShowAddTorp]=useState(false);
   const [newTorpCode,setNewTorpCode]=useState("");
   const [newTorpGrams,setNewTorpGrams]=useState("");
-  const [presets,setPresets]=useState([]);
+  const [presets,setPresets]=useState(()=>lsGet("bolo_presets",[]));
   const [presetName,setPresetName]=useState("");
   const [showSave,setShowSave]=useState(false);
   const [showLoad,setShowLoad]=useState(false);
   const [toast,setToast]=useState(null);
+
+  // Persist to localStorage
+  useEffect(()=>lsSet("bolo_lang",lang),[lang]);
+  useEffect(()=>lsSet("bolo_shots",shots),[shots]);
+  useEffect(()=>lsSet("bolo_torpedoes",torpedoes),[torpedoes]);
+  useEffect(()=>lsSet("bolo_spacingRows",spacingRows),[spacingRows]);
+  useEffect(()=>lsSet("bolo_presets",presets),[presets]);
 
   const showToast=(msg,ok=true)=>{setToast({msg,ok});setTimeout(()=>setToast(null),2500);};
   const count=parseInt(countStr)||0;
@@ -578,7 +591,24 @@ export default function App(){
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:isT?10:0}}>
                   <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,background:GC[idx%GC.length],display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{idx+1}</div>
                   <div style={{fontSize:10,color:ac,fontWeight:700,minWidth:50}}>{tl}</div>
-                  {!isT&&<div style={{flex:1}}><div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{t.colPcs}</div><input type="number" min={1} max={30} value={row.count} onChange={e=>updateSpacingRow(row.id,"count",e.target.value)} onFocus={e=>e.target.select()} style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",background:"#071830",border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/></div>}
+                  {/* Count: auto/manual for shots and bulk */}
+                  {!isT&&<div style={{flex:1}}>
+                    <div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{lang==="el"?"ΤΕΜΑΧΙΑ":"COUNT"}</div>
+                    <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                      <button onClick={()=>updateSpacingRow(row.id,"countMode",row.countMode==="manual"?"auto":"manual")}
+                        style={{padding:"4px 8px",background:row.countMode==="manual"?"#1565c080":"#2e7d3280",color:"#fff",
+                          border:row.countMode==="manual"?"1.5px solid #42a5f5":"1.5px solid #69f0ae",
+                          borderRadius:6,fontWeight:700,fontSize:10,cursor:"pointer",whiteSpace:"nowrap"}}>
+                        {row.countMode==="manual"?(lang==="el"?"✋ Χειρ.":"✋ Man."):(lang==="el"?"⚡ Αυτ.":"⚡ Auto")}
+                      </button>
+                      {row.countMode==="manual"&&<input type="number" min={1} max={30} value={row.count}
+                        onChange={e=>updateSpacingRow(row.id,"count",e.target.value)}
+                        onFocus={e=>e.target.select()}
+                        style={{width:52,boxSizing:"border-box",padding:"4px 6px",background:"#071830",
+                          border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/>}
+                      {row.countMode!=="manual"&&<span style={{fontSize:11,color:"#69f0ae",fontWeight:700}}>{lang==="el"?"(από υπολ.)":"(from calc)"}</span>}
+                    </div>
+                  </div>}
                   <div style={{flex:1}}>
                     <div style={{fontSize:9,color:isB?"#69f0ae":"#546e7a",textTransform:"uppercase",marginBottom:3}}>
                       {lang==="el"?"ΑΠΟΣΤΑΣΗ ΑΠΟ ΠΡΟΗΓ. (cm)":"DIST FROM PREV (cm)"}
@@ -617,14 +647,16 @@ export default function App(){
             })}
           </div>
 
-          {/* Preview */}
+          {/* Preview - θηλιά κάτω, φελλός πάνω */}
           {spacingRows.length>0&&<div style={{background:"#060f1e",borderRadius:9,padding:12,border:"1px solid #1e4d8a"}}>
             <div style={{fontSize:10,color:"#90caf9",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{t.previewTitle}</div>
+            {/* Φελλός πάνω */}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
               <div style={{width:26,display:"flex",justifyContent:"center",flexShrink:0}}><div style={{width:10,height:22,background:"#ef9a9a",borderRadius:"3px 3px 0 0"}}/></div>
               <div style={{width:20,height:26,background:"linear-gradient(180deg,#42a5f5,#1565c0)",borderRadius:"50% 50% 40% 40%/60% 60% 40% 40%",border:"2px solid #90caf9",flexShrink:0}}/>
               <span style={{fontSize:12,color:"#90caf9",fontWeight:700}}>{t.floatTop}</span>
             </div>
+            {/* Γραμμές από φελλό→θηλιά = reversed */}
             {[...spacingRows].reverse().map((row,ridx)=>{
               const idx=spacingRows.length-1-ridx,rt=row.type||"shot",isB=rt==="bulk",isT=rt==="torpedo";
               const col=isT?"#42a5f5":isB?"#e53935":GC[idx%GC.length];
@@ -632,18 +664,16 @@ export default function App(){
               return(<div key={row.id} style={{display:"flex",alignItems:"stretch",gap:8}}>
                 <div style={{width:26,display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}}><div style={{width:3,flex:1,minHeight:24,background:isB?"#37474f":"#546e7a",borderRadius:2}}/></div>
                 <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
-                  {isT
-                    ?<div style={{width:8,height:14,borderRadius:"50%",background:"linear-gradient(180deg,#90caf9,#1565c0)",border:"1px solid #42a5f5",flexShrink:0}}/>
-                    :<div style={{width:13,height:13,borderRadius:"50%",background:col,flexShrink:0}}/>
-                  }
+                  {isT?<div style={{width:8,height:14,borderRadius:"50%",background:"linear-gradient(180deg,#90caf9,#1565c0)",border:"1px solid #42a5f5",flexShrink:0}}/>
+                    :<div style={{width:13,height:13,borderRadius:"50%",background:col,flexShrink:0}}/>}
                   <div style={{fontSize:12,color:"#e3f2fd"}}>
                     {isT?<><span style={{color:"#42a5f5",fontWeight:700}}>🔵 TORPEDO</span><span style={{color:"#90caf9"}}> {torpName}</span>{row.spacing>0&&<span style={{color:"#ffd740"}}> · {row.spacing}cm</span>}</>
-                      :<><strong style={{color:col}}>{row.count} {t.pcsUnit}</strong>{isB?<span style={{color:"#69f0ae",fontWeight:700}}> BULK</span>:<span style={{color:"#90caf9"}}> {t.perEvery} <strong style={{color:"#ffd740"}}>{row.spacing}cm</strong></span>}</>
-                    }
+                      :<><strong style={{color:col}}>{row.count} {t.pcsUnit}</strong>{isB?<span style={{color:"#69f0ae",fontWeight:700}}> BULK</span>:<span style={{color:"#90caf9"}}> {t.perEvery} <strong style={{color:"#ffd740"}}>{row.spacing}cm</strong></span>}</>}
                   </div>
                 </div>
               </div>);
             })}
+            {/* Θηλιά κάτω */}
             <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:26,display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}}><div style={{width:3,height:14,background:"#546e7a"}}/></div><span style={{fontSize:14}}>🔗</span><span style={{fontSize:12,color:"#ffd740",fontWeight:800}}>{t.loopBottom}</span></div>
           </div>}
         </Panel>}
