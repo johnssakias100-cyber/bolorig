@@ -599,31 +599,28 @@ export default function App(){
                   {!isT&&<div style={{flex:2}}>
                     <div style={{fontSize:9,color:"#546e7a",textTransform:"uppercase",marginBottom:3}}>{lang==="el"?"ΤΕΜΑΧΙΑ":"COUNT"}</div>
                     <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
+                      {/* Bulk: αριθμός τεμαχίων πάντα ορατός */}
+                      {isB&&<input type="number" min={1} max={30} value={row.manualCount||"1"}
+                        onChange={e=>updateSpacingRow(row.id,"manualCount",e.target.value)}
+                        onFocus={e=>e.target.select()}
+                        style={{width:52,boxSizing:"border-box",padding:"5px 6px",background:"#071830",
+                          border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:14,fontWeight:700,outline:"none"}}/>}
+                      {/* Toggle Αυτ/Χειρ */}
                       <button onClick={()=>updateSpacingRow(row.id,"countMode",row.countMode==="manual"?"auto":"manual")}
                         style={{padding:"5px 8px",background:row.countMode==="manual"?"#1565c080":"#2e7d3280",color:"#fff",
                           border:row.countMode==="manual"?"1.5px solid #42a5f5":"1.5px solid #69f0ae",
                           borderRadius:6,fontWeight:700,fontSize:10,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
                         {row.countMode==="manual"?(lang==="el"?"✋ Χειρ.":"✋ Man."):(lang==="el"?"⚡ Αυτ.":"⚡ Auto")}
                       </button>
-                      {row.countMode==="manual"&&<>
-                        {/* Dropdown βαριδιών - πάντα */}
-                        <select value={row.manualShotId||""} onChange={e=>updateSpacingRow(row.id,"manualShotId",e.target.value)}
-                          style={{flex:1,minWidth:80,boxSizing:"border-box",padding:"5px 6px",background:"#071830",
-                            border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:12,fontWeight:700,outline:"none"}}>
-                          <option value="">{lang==="el"?"-- Βαρίδι --":"-- Shot --"}</option>
-                          {[...shots].sort((a,b)=>b.grams-a.grams).map(s=><option key={s.id} value={s.id}>{s.code} ({s.grams.toFixed(3)}g)</option>)}
-                        </select>
-                        {/* Τεμάχια ΜΟΝΟ για bulk */}
-                        {isB&&<>
-                          <input type="number" min={1} max={30} value={row.manualCount||"1"}
-                            onChange={e=>updateSpacingRow(row.id,"manualCount",e.target.value)}
-                            onFocus={e=>e.target.select()}
-                            style={{width:46,boxSizing:"border-box",padding:"5px 6px",background:"#071830",
-                              border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:13,fontWeight:700,outline:"none"}}/>
-                          <span style={{fontSize:9,color:"#546e7a"}}>{lang==="el"?"τεμ.":"pcs"}</span>
-                        </>}
-                      </>}
-                      {row.countMode!=="manual"&&<span style={{fontSize:11,color:"#69f0ae",fontWeight:700}}>{lang==="el"?"(από υπολ.)":"(from calc)"}</span>}
+                      {/* Χειροκίνητο: dropdown βαριδιού */}
+                      {row.countMode==="manual"&&<select value={row.manualShotId||""} onChange={e=>updateSpacingRow(row.id,"manualShotId",e.target.value)}
+                        style={{flex:1,minWidth:80,boxSizing:"border-box",padding:"5px 6px",background:"#071830",
+                          border:`1.5px solid ${bc}`,borderRadius:7,color:"#e3f2fd",fontSize:12,fontWeight:700,outline:"none"}}>
+                        <option value="">{lang==="el"?"-- Βαρίδι --":"-- Shot --"}</option>
+                        {[...shots].sort((a,b)=>b.grams-a.grams).map(s=><option key={s.id} value={s.id}>{s.code} ({s.grams.toFixed(3)}g)</option>)}
+                      </select>}
+                      {/* Αυτόματο: ένδειξη */}
+                      {row.countMode!=="manual"&&!isB&&<span style={{fontSize:11,color:"#69f0ae",fontWeight:700}}>{lang==="el"?"(από υπολ.)":"(from calc)"}</span>}
                     </div>
                   </div>}
                   <div style={{flex:1}}>
