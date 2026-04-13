@@ -112,8 +112,10 @@ function buildPositions(items,spacingRows,torpedoes){
     }
     const isBulk=row.type==="bulk";
     const isManual=row.countMode==="manual"&&row.manualShotId;
-    // Manual bulk uses manualCount; manual shot = 1; auto = from algorithm
-    const rc=isManual?(isBulk?parseInt(row.manualCount)||1:1):(isLast?items.length-si:parseInt(row.count)||1);
+    // Bulk: πάντα χρησιμοποιεί manualCount για τεμάχια
+    // Shot manual: 1 τεμάχιο με συγκεκριμένο βαρίδι
+    // Auto: από αλγόριθμο
+    const rc=isBulk?(parseInt(row.manualCount)||1):isManual?1:(isLast?items.length-si:parseInt(row.count)||1);
     for(let x=0;x<rc;x++){
       if(!isManual&&si>=items.length&&!isLast&&!isBulk)break;
       const shotItem=isManual
